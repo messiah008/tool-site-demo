@@ -1,12 +1,640 @@
 # 迭代进度记录
 
-> **最后更新**: 2026-07-02
-> **当前版本**: v0.2.1
-> **阶段**: 原型期(Phase 0-1)
+> **最后更新**: 2026-07-15
+> **当前版本**: v1.5.0 (新增 36-用户支付卡密三模块补全方案)
+> **上一版本**: v1.4.4 (按设计规范批量审计并改造 P0-P2 共 15 个工具)
+> **阶段**: 39 个工具按新规范重写,3 大业务模块补全方案已设计完成
+
+---
+
+## 🔄 当前状态(实时更新,防止记忆丢失)
+
+**正在执行**: 补全 WPS 工具完成 ✅,累计 74 个工具
+
+**WPS 工具补全**(v1.0.0-rc2,基于 wps实现功能.png 截图):
+- pdf-to-excel PDF 转 Excel(¥2,WPS 引擎,表格还原)
+- pdf-to-ppt PDF 转 PPT(¥3,WPS 引擎,页转幻灯片)
+- pdf-to-scanned 转扫描型 PDF(免费,Stirling,文字变图片防复制)
+
+**已实现工具**(71 个,v0.9.0):
+
+第 1 批(30 个,纯前端):
+- PDF/付费(1): pdf-to-word
+- 电脑网络/加密(11): random-password/uuid-gen/qrcode/md5/sha/hmac/aes/file-hash/base64/url/html-escape
+- 文本工具(6): json-format/text-count/case-convert/text-dedup/text-diff/regex-test
+- 计算工具(7): timestamp-convert/base-convert/unit-convert/storage-unit/bmi/color-convert/morse
+- 时间工具(3): online-alarm/countdown-timer/world-clock
+- 符号收集(2): special-symbols/emoji-collection
+
+第 2 批(30 个,纯前端+静态数据):
+- 日常生活(5): lunar-calendar万年历/solar-terms节气/zodiac生肖/age-calculator年龄/constellation星座
+- 网站建设(5): html-format/css-format/js-format/sql-format/http-status
+- 其他计算(2): placeholder-image占位图/chinese-number数字转中文大写
+- 文化数据(8): periodic-table元素周期表/hundred-surnames百家姓/birthday-code生日密码/twenty-eight-stars二十八星宿/dynasties历史朝代/iching易经/luban-ruler鲁班尺/birthday-book生日书
+- 趣味文本(5): couplets对联/riddles谜语/brain-teasers脑筋急转弯/famous-quotes名人名言/two-part-allegorical歇后语
+- 互动游戏(5): reaction-test反应测试/lottery抽奖/random-number-gen随机数/user-agent查看/mind-reading读心术
+
+第 3 批(5 个,数据库查询,backend=db-query):
+- id-card-region 身份证归属查询(tool_id_cards 表,320 条)
+- phone-region 手机归属查询(tool_phone_numbers 表,62 条)
+- idiom-dict 成语大全(tool_idioms 表,45 条)
+- poetry 诗词大全(tool_poetry 表,57 条)
+- history-today 历史上的今天(tool_history_today 表,26 条)
+
+第 4 批(3 个,后端代理,backend=proxy):
+- ip-query IP 地址查询(代理 ip-api.com,返回归属/运营商/经纬度)
+- dns-query DNS 查询(代理 Cloudflare DoH,支持 A/AAAA/MX/TXT/CNAME/NS)
+- whois-query WHOIS 查询(占位,待接入付费 API)
+
+第 5 批(3 个,付费工具,is_premium=true):
+- id-photo 证件照制作(Canvas 换底色+裁剪,¥2/次)
+- image-compress 图片批量压缩(browser-image-compression,¥2/次)
+- resume-generator 简历模板生成(填写+实时预览+打印,¥5/次)
+
+**deprecated**(2): timestamp/base64(被新工具替代)
+
+**验证结果**(v0.9.0):
+- ✅ registry 95 个工具(93 活跃 + 2 deprecated),一致性校验通过
+- ✅ 前端构建成功(8.21s),71 个工具页各自独立 chunk
+- ✅ Nginx 部署后 71 个路由全部 HTTP 200
+- ✅ 数据库扩充:身份证 320/手机 62/成语 45/诗词 57/历史 26 条
+- ✅ 代理 API 工作正常(IP 查 8.8.8.8→美国 Google,DNS 查 baidu.com→A 记录)
+- ✅ 付费工具余额扣减逻辑就绪(检查余额→不足跳转兑换页)
+- ✅ 工具路由+渲染验证 77/77 通过(100%)
+- ✅ 数据库/代理功能验证 7/7 通过(100%)
+
+**验证用例**(v0.9.0 新增,B 任务完成):
+- schemas/tests/ 目录 — 77 个工具的测试用例 JSON
+- 31 个工具含功能验证用例(输入+断言)
+- scripts/verify_tools.py v2 — 支持读取测试用例执行功能验证
+- 断言类型:json_path/json_path_gte/list_not_empty/contains/equals/route_ok
+- 用法: `python scripts/verify_tools.py --functional`(db/proxy 自动验证,frontend 标记需浏览器)
+
+**待执行**(对齐 22 号文档 12 周计划):
+- [x] 第 1 批:30 个纯前端工具 ✅
+- [x] 第 2 批:30 个纯前端+静态数据 ✅
+- [x] 第 3 批:5 个数据库工具 ✅(数据已扩充至生产规模)
+- [x] 第 4 批:3 个后端代理工具 ✅(IP/DNS/WHOIS)
+- [x] 付费工具:证件照/图片压缩/简历 ✅(第 5 批)
+- [x] 工具验证:77 个测试用例已生成 ✅(B 任务完成)
+- [x] 上线准备:检查清单+生产配置+部署脚本 ✅
+
+**上线准备完成**(v1.0.0-rc):
+- [x] 29-go-live-checklist-exec.md — 上线检查清单(执行版,38 项)
+- [x] backend/.env.prod.example — 生产环境配置模板(强密码/JWT/CORS/支付)
+- [x] scripts/deploy_prod.sh — 生产一键部署脚本(9 步:检查→构建→启动→迁移→数据→验证)
+- [x] main.py 生产模式(DEBUG=false 时关闭 /docs /redoc /openapi.json)
+
+**可维护性+易用性优化**(v1.0.0-rc3,2026-07-07):
+- [x] useConvertTask composable — 4 个转换工具复用,消除 pollTask 重复(行数 -38%)
+- [x] useBalanceGuard composable — 3 个付费工具复用,余额不足改弹窗确认
+- [x] 实时搜索 — 首页输入实时下拉建议(最多 8 个,按 name/keywords/desc 匹配)
+- [x] 占位标记 — 首页卡片显示"即将上线"角标 + 半透明
+- [x] 互链扩展 — ToolLayout 从 6 个扩到 70 个(同类 35 + 随机 35),bmcx 模式
+- [x] 健康度 6.5/10 → 7.2/10
+
+**万年历产品化优化**(v1.0.0-rc4,2026-07-08,对标 bmcx):
+- [x] 从"输入框查单日(6 行信息)"重构为"月历网格 + 点击展开完整黄历"
+- [x] 月历网格:7列42格,每格显示公历+农历+节气/节日标注
+- [x] 完整黄历详情:农历/干支/生肖/星座/星宿/十二神/六曜/冲煞/宜忌/节日(10 项)
+- [x] 月份/年份切换(1900-2100),今天按钮
+- [x] 节气标注(从 lunar-javascript 获取精确节气)
+- [x] 公历节日标注(元旦/国庆/圣诞等)
+- [x] 移动端响应式适配
+- [x] 错题集记录 2 个新问题(#010 lunar API 名不匹配 / #011 input_schema 需同步)
+
+**选品重新评估 + 产品设计审查**(v1.0.0-rc5,2026-07-08):
+- [x] 诊断选品问题:开发者工具占比 40%,生活工具仅 20%,bmcx 高需求工具缺失 17 个
+- [x] 产出改进方案(详见 31 号文档第六章):
+  - 第一阶段:补 8 个高搜索量生活工具(个税/房贷/退休年龄/简繁/拼音/老黄历/亲戚/利息,月搜索 200万+)
+  - 第二阶段:扩数据(成语→500+/诗词→500+/身份证→3000+)
+  - 第三阶段:开发者工具降级 + 合并(HMAC/AES→★1,CSS/JS/HTML 格式化合并)
+- [x] 产品设计审查:14 个工具存在"平庸"问题(数据少/无详情/无引导)
+- [x] 界面设计规范(32 号文档):一屏可见/双栏布局/视觉层次标准
+
+**选品改进第一阶段完成**(v1.1.0,2026-07-08):
+- [x] P0:补 8 个高搜索量生活工具 ✅(月搜索覆盖 200万+)
+  - tax-calculator 个税计算器(50万+/月,七级累进税率+五险一金)
+  - mortgage-calculator 房贷计算器(40万+/月,等额本息/本金)
+  - retirement-age 退休年龄计算器(20万+/月,渐进式延迟)
+  - simplified-traditional 简繁互转(20万+/月,opencc-js)
+  - pinyin-convert 汉字转拼音(15万+/月,pinyin-pro)
+  - old-almanac 老黄历(30万+/月,宜忌冲煞值神)
+  - relatives-calculator 亲戚计算器(10万+/月,关系链计算)
+  - interest-calculator 存款利息计算器(15万+/月,定期/活期/复利)
+- [x] 全量验证 110/110 通过(100%)
+- [x] 遵守 SSOT(registry→gen:tools→构建)、设计规范(通用组件)、无耦合
+
+**选品改进第二阶段-纯算法生活工具**(v1.1.1,2026-07-09,对标 bmcx):
+- [x] 补 4 个高搜索量纯算法/库工具(无后端/API/数据库,与点1数据扩充零冲突)
+  - solar-to-lunar 公历转农历(30万+/月,lunar-javascript,含干支/生肖/节气/节日)
+  - auspicious-day 黄道吉日查询(30万+/月,lunar-javascript 宜忌筛选,8 类事项)
+  - due-date 预产期计算器(8万+/月,末次月经/受孕日双算法+周期校正+孕周进度)
+  - safe-period 安全期排卵期(8万+/月,排卵日/易孕期/前后安全期)
+- [x] 生肖取值修复:solar-to-lunar 用 lunar.getYearShengXiao()(非 getAnimal(),后者返回二十八宿动物,见错题集 #015)
+- [x] 每个工具配 about 知识区(features/scenarios/faq),响应"去平庸"改进方案1
+- [x] 遵守 SSOT:add_life_tools2.py 改 registry → gen:tools → 构建验证,无耦合
+- [x] 全量验证 114/114 通过(100%),工具页 87/87 可访问
+- [x] 算法逻辑 node 验证通过(预产期/排卵日/吉日筛选均与手算一致)
+
+**部署同步**(v1.1.1,2026-07-09):
+- [x] 发现 Windows 与 WSL(/root/tool-site-project)两份副本脱节:WSL 侧源码残缺(只剩2页面)、无 node、registry 停在90、线上工具路由一度全404
+- [x] diff 结论:WSL 侧无独有可保留内容(Windows 是超集+更新版),以 Windows 为权威单向同步
+- [x] 同步 frontend/src(2→88 页面+composables)、registry(90→110)、dist(新构建 C6KbY8An),未动 backend/.env/数据库
+- [x] `docker compose restart nginx`,线上 HTTPS 验证:solar-to-lunar/auspicious-day/due-date/safe-period + zodiac/lunar 修复全部 HTTP 200
+- [x] 旧 WSL 文件备份至 `/root/tool-site-project/_backup_20260709_105628`
+
+**选品改进第三阶段-纯算法生活工具**(v1.2.2,2026-07-09,SSG 架构下):
+- [x] 补 2 个纯算法零数据工具(SSG 安全、不碰数据库、避开数据扩充)
+  - blood-type 血型遗传计算器(ABO 规则表,父母血型→孩子可能/不可能血型,16 组合全验)
+  - days-between 日期天数计算器(两日期间隔+工作日/周末分离+周月年换算)
+- [x] 按新 SEO 规范(33 号文档)配齐 seo 字段(title/description/keywords/FAQ≥3/how_to/description_for_ai)
+- [x] SSG 构建成功:每页预渲染独立 HTML(title/h1/FAQ/JSON-LD/canonical 齐全,非空壳)
+- [x] 全量同步 WSL(因 WSL 又落后整个 SSG 基础设施):frontend(src+dist+config+package.json+main.ts+router)+schemas
+- [x] 修复 SSG 部署关键:WSL nginx.conf 落后(无 $uri.html),同步后 reload,/blood-type 等预渲染页 title 正确生效
+- [x] verify_all 116/116(100%):修复 robots/llms(部署同步后恢复)+ Vue 挂载点断言适配 SSG(data-server-rendered)
+
+**选品改进第四阶段-健康类工具**(v1.2.3,2026-07-09):
+- [x] 补 2 个纯算法健康工具(无数据/API依赖,SSG安全)
+  - blood-pressure 血压评估器(中国高血压防治指南7级分级+单纯收缩期判断+对照表)
+  - standard-weight 标准体重计算器(BMI 18.5-23.9区间+Broca/Devine/Robinson公式)
+- [x] 算法 node 验证:血压6种典型值分级正确,标准体重男175/女162计算合理
+- [x] 全程用 `scripts/deploy_sync.sh` 一键部署(SKIP_BUILD=1),5/5验证全绿
+- [x] verify_all 118/118(100%);2新工具线上SSG title专属正确
+
+**黄历三件套产品力优化**(v1.2.4,2026-07-09,对标 huangli.com):
+- [x] 抽 `components/AlmanacDetail.vue` 共享详情组件(万年历/老黄历复用,SSOT 详情逻辑)
+- [x] 详情深度对标 huangli 首屏:宜忌左右分栏 + 今日方位(财/喜/福神)+吉神宜趋/凶煞宜忌标签 + 彭祖百忌 + 胎神 + 建除/纳音
+- [x] 十二时辰吉凶表(12时辰干支/吉凶/冲煞/时宜时忌,当前时辰高亮,可折叠)— lunar-javascript 全 API 验证可用
+- [x] 万年历接入 AlmanacDetail(右栏,16KiB→46KiB 预渲染 HTML 信息密度大增)
+- [x] 老黄历改单日详情版(日期切换器+AlmanacDetail,与万年历"翻月历"分工,消除重复)
+- [x] 黄道吉日加吉时(每个吉日显示当天吉时时辰)
+- [x] 修复 zodiac getAnimal bug 回归(错题集 #015,改 getYearShengXiao,2020-2031全验证)
+- [x] 产出 34-product-power-optimization.md(高流量工具清单+迭代方案)
+- [x] SSG 预渲染含新模块(非空壳);verify_all 118/118;线上三件套新模块全在线
+
+**P1 计算类可视化**(v1.2.5,2026-07-10,纯 CSS/SVG 不引图表库):
+- [x] 房贷 mortgage-calculator:加本金/利息占比堆叠条(用户最关心"利息占多少"),等额本金补末月月供+每月递减额
+- [x] 个税 tax-calculator:加"月薪去向"分段条(五险一金/个税/到手占比),钱去哪了一目了然
+- [x] 退休 retirement-age:加生涯时间轴(出生→原退休→延迟退休,标记当前位置,在职/已退休状态)
+- [x] 算法 node 验证:房贷100万30年本金62%/利息38%,个税15000到手79%,退休1985男时间轴百分比合理
+- [x] SSG build 成功(交互后渲染,不影响预渲染);deploy_sync 部署 5/5;verify_all 118/118
+
+**P2 文化类深度核查+iching补全**(v1.2.6,2026-07-10):
+- [x] 核查文化工具真实状态(纠正34号文档过时判断):constellation/solar-terms/dynasties/hundred-surnames 已补深度(有data.ts+完整内容)
+- [x] iching 补全:16卦→64卦完整数据(data.ts),每卦9维释义(卦辞/象/事业/经商/求名/外出/婚恋/决策),对标huangli今日卦象
+- [x] iching 页面重写:起卦随机64卦+多维卡片展示,SSG安全(crypto仅在点击触发)
+- [x] SSG build成功;deploy_sync部署5/5;verify_all 118/118
+
+**扩数据 3 批全部完成**(v1.3.0,2026-07-10):
+
+第 1 批 — 数据库类(4 个):
+- [x] 成语 45→218(扩 173 条,常用成语)
+- [x] 诗词 57→353(扩 296 首,唐宋名篇)
+- [x] 身份证 320→2543(扩 2223 条,全国区县)
+- [x] 手机 62→294(扩 232 条,三大运营商)
+- 脚本: scripts/expand_idioms.sql / expand_poetry.sql / gen_expand_id_cards.py / gen_expand_phone.py
+
+第 2 批 — 前端静态(5 个):
+- [x] 谜语 8→102(扩 94 条,动物/植物/物品/脑筋)
+- [x] 脑筋急转弯 8→110(扩 102 条)
+- [x] 歇后语 10→103(扩 93 条,三国/西游/水浒/神话类)
+- [x] 对联 18→55(扩 37 副,春联/婚联/寿联/乔迁/通用 5 类)
+- [x] 名人名言 10→103(扩 93 条,诸子百家/近现代)
+- 数据外置: frontend/src/tools/{id}/data.ts,页面 import 引用
+
+第 3 批 — 补详情(5 个):
+- [x] 生肖 12 项→完整详情(性格/优缺点/配对/幸运/名人)
+- [x] 星座 12 项→完整详情(性格/优缺点/配对/职业/恋爱)
+- [x] 节气 24 项→完整详情(含义/习俗/养生/农事,可点击查看)
+- [x] 朝代 17 项→完整详情(大事/文化/帝王,点击展开)
+- [x] 百家姓 50 姓→完整详情(起源/名人/排名)
+
+**P2续:仍薄文化工具补深**(v1.2.7,2026-07-10):
+- [x] birthday-code 修复:原仅8日期有数据(357天fallback失效)→ 改生命灵数算法(生年月日各位相加至单数/大师数),12灵数释义+12月主题,覆盖所有生日
+- [x] birthday-book 补深:原仅花/石/树+拼字符串 → 12月生日花语/寓意/性格象征
+- [x] twenty-eight-stars 补深:原每宿一句"主XX" → 四象(青龙朱雀白虎玄武)归属+吉凶+释义+运势(28宿全)
+- [x] luban-ruler 补知:加鲁班尺背景(门公尺8段吉凶/丁兰尺/用途说明)
+- [x] birthday-code registry input_schema 同步(month/day→date),生命灵数需完整生日
+- [x] SSG build成功;deploy_sync部署5/5;verify_all 118/118
+
+**🔥 修复全站表单bug**(v1.2.8,2026-07-10,错题集#016):
+- [x] 用户报"黄道吉日查询一次后按钮失效",精确为"改参数后查询无反应"
+- [x] 根因:ToolInput 只 emit `update:modelValue`,但72个工具页用 `@update=` 监听 → Vue3两事件不同 → handleUpdate不触发 → form不更新 → 改参数无效(首查靠默认值成功)
+- [x] Chrome headless 最小复现确认(修复前form_x=a不更新,修复后=c正确更新)
+- [x] 修复:ToolInput update/toggleCheckboxGroup 同时 emit `update`+`update:modelValue`(一处修复全站72工具生效)
+- [x] deploy_sync部署;verify_all 118/118无回归
+
+**黄历吉日查询二级功能升级**(v1.2.9,2026-07-10,对标 huangli.com):
+- [x] auspicious-day 吉日列表项可点击 → 跳转 `/old-almanac?date=YYYY-MM-DD` 看完整黄历(对标 huangli 吉日→单日详情)
+- [x] 加查询模式切换:未来N天 / **指定月份**(对标 huangli 按月查吉日,选年月查该月全部吉日)
+- [x] old-almanac 支持 URL query `?date=` 参数(供跳转定位,SSG 构建期 query 空fallback今天,hydration后读query)
+- [x] Chrome headless 实测闭环:点查询→11吉日列表→首项链接/old-almanac?date=2026-07-10→old-almanac显示2026-07-17(query读取生效)
+- [x] SSG build成功;deploy_sync部署5/5;verify_all 118/118
+
+**新增AI修图提示词库**(v1.2.10,2026-07-10,形态A模板库):
+- [x] ai-retouch-prompt:6分类(换背景/人像美化/风格转换/滤镜调色/智能扩图/抠图换底)×共46条中文修图提示词
+- [x] 参考小红书流行趋势改写(非照搬),每条含场景名/适用平台/提示词/使用贴士
+- [x] 一键复制(navigator.clipboard + execCommand兜底,SSR安全),Chrome实测复制反馈生效
+- [x] 分类标签切换 + 卡片网格 + 使用说明,无表单纯内容展示(同special-symbols/emoji结构)
+- [x] 配seo(title/description/keywords/FAQ≥3/how_to/description_for_ai)+about
+- [x] SSG预渲染含全部提示词内容(非空壳,爬虫可抓);deploy_sync部署5/5;verify_all 119/119
+- [x] 产出35-short-video-tools-plan.md(短视频工具方案,含提示词库思路)
+
+**AI图像提示词库产品化升级**(v1.2.11,2026-07-13):
+- [x] 重构为按模型分组:通用(46修图)+豆包+即梦Seedream+Nano banana,模型筛选标签+计数
+- [x] 支持长结构化提示词(如Nano banana穿搭拆解600字多段框架),pre滚动展示+一键复制
+- [x] 新增来源标注字段(source:官方示例/社区分享/原创整理),每条可追溯
+- [x] 入库用户提供的Nano banana穿搭拆解示例(来源:小红书#nanobanana)+即梦官方公式示例(海边日落/东北虎)+豆包修图句式
+- [x] 加搜索(标题/内容/分类)+模型色标(豆包蓝/即梦橙/Nano粉)
+- [x] 名称扩为"AI图像提示词库"(含修图+穿搭拆解+文生图),id/route不变保链接,SEO扩范围
+- [x] 工作流:用户贴收集的提示词→我结构化入库+标来源(无法自动抓取小红书APP内容)
+- [x] SSG预渲染46KiB含长提示词;deploy_sync部署5/5;Chrome实测模型筛选+长词复制生效;verify_all 119/119
+
+**接入开源豆包提示词合集**(v1.2.12,2026-07-13):
+- [x] 入库 github langgptai/awesome-doubao-prompts(Apache-2.0许可,允许商用)29条中文豆包提示词
+- [x] 覆盖7类:生图2/工作效率5/内容创作5/编程开发5/教育学习5/创意设计5/生活服务2
+- [x] 含{{变量}}占位符结构化模板,每条带使用贴士,独立存 doubao-prompts.ts
+- [x] 豆包分组从2条增至31条,Chrome实测筛选31卡片全豆包、分类多样
+- [x] 页面底部加Apache-2.0许可证声明+仓库链接(合规:保留版权声明)
+- [x] SSG预渲染73.99KiB含29条豆包提示词;verify_all 119/119
+
+**接入开源通用对话提示词**(v1.2.13,2026-07-13):
+- [x] 入库 github PlexPt/awesome-chatgpt-prompts-zh(MIT许可)精选41条通用对话角色提示词
+- [x] git clone拉取prompts-zh.json(124条)→脚本精选41条(排除技术开发/擦边/学术,保留创作/生活/起名/咨询)
+- [x] 覆盖翻译/讲故事/小说家/编剧/诗人/标题生成器/导游/厨师/营养师/造型师/起名等,适用豆包/Kimi/通义
+- [x] 新增"通用对话"模型分组(绿色色标),独立存 general-chat-prompts.ts
+- [x] 页面许可证声明补MIT来源;gen_general_prompts.py生成脚本(可复用扩充)
+- [x] 提示词库总计120条(通用44+通用对话41+豆包31+即梦3+Nano1),6分组
+- [x] Chrome实测6模型计数正确+通用对话筛选41卡片全验;verify_all 119/119
+
+**提示词产品力提质(按"交付难/复杂/有门槛"标准)**(v1.2.14,2026-07-13):
+- [x] 诊断:现有120条大量低门槛(纯角色扮演"用户自己也会说"),修图8换背景8滤镜同质,缺"难自写"的高门槛提示词
+- [x] 删低价值:通用对话41→13条(删28条纯角色扮演营养师/讲故事/心理等,留标题生成/起名/编剧/文案等有套路的)
+- [x] 补高门槛:新增6条用户难自写的高阶提示词(角色一致性约束/电影感光影/面料材质/负面约束排除/Character Sheet套路/商业精修)
+- [x] 加difficulty字段+难度色标(入门灰/进阶黄/高阶红),呼应"门槛"分析
+- [x] 顺手修预存问题:hundred-surnames/data.ts Duplicate key "程"(删重复条目)
+- [x] 提示词库120→98条,质量提升;高阶徽章6个;Chrome实测分组计数+difficulty正确
+- [x] SSG build干净无error无warning;deploy_sync部署5/5;verify_all 119/119
+
+**P0 计算器对标改造**(v1.3.1,2026-07-13,对标 AuxTool/房天下):
+- [x] 个税计算器:加年终奖单独/合并计税对比 + 7级税率档位可视化 + 到手/社保/个税分段占比条
+- [x] 房贷计算器:加还款明细表(每月本金/利息/剩余) + 提前还款计算(省多少利息) + 本金/利息占比堆叠条
+- [x] 验证:两工具 HTTP 200,无前端错误
+
+**产品设计规范 v2.0 沉淀**(v1.4.0,2026-07-13):
+- [x] 32-ui-design-spec.md 升级为产品设计规范(6条铁律+5类工具模板+检查清单)
+- [x] 核心原则:一进来就是完整产品(默认值+自动计算+结果始终可见+功能可见性)
+- [x] 沉淀教训:功能改了界面没变/新功能用户看不到/日历太大/API名漏改
+
+**第1批产品优化全部完成**(v1.4.0,7个工具按新规范重写):
+- [x] 个税计算器:Tab切换(月薪/年终奖) + 预设默认值 + 到手占比条 + 税率档高亮 + 明细卡片 + 单独vs合并对比
+- [x] 房贷计算器:预设默认值 + 三卡片(月供/利息/总额) + 本息占比条 + 可展开明细表 + 可展开提前还款 + 提示
+- [x] 退休年龄:预设默认值 + 退休时间渐变卡片 + 三卡片(原年龄/延迟年龄/延迟月数) + 时间轴(已过/剩余) + 社保提示
+- [x] 存款利息:预设默认值 + 利息渐变卡片 + 四卡片(本金/利息/本息/年化) + 占比条 + 参考利率表(8种) + 提示
+- [x] BMI计算器:预设默认值 + BMI大数字+分类+建议 + 仪表盘指针(偏瘦/正常/超重/肥胖) + 四卡片(理想体重/体脂率/基础代谢)
+- [x] 单位换算:8类分类(长度/重量/温度/面积/体积/速度/数据/时间) + 全单位同时显示 + 点击切换输入源
+- [x] 颜色转换:颜色选择器+HEX输入 + 三格式(HEX/RGB/HSL)一键复制 + 配色方案(互补/类似/三角) + 明暗渐变
+
+**第2批产品优化全部完成**(v1.4.1,2026-07-13,7个工具按新规范重写):
+- [x] 时间戳转换:双面板(时间戳→日期 / 日期→时间戳) + 当前时间实时显示 + 6个常用时间戳快捷预设
+- [x] 字数统计:8指标实时统计 + 阅读时间/朗读时间/写作时间 + 字数占比条(中文/英文/标点/其他)
+- [x] JSON格式化:实时美化/压缩 + 语法高亮暗色主题 + 错误显示 + 字节数+压缩率
+- [x] 进制转换:四主卡片(BIN/OCT/DEC/HEX 渐变色) + 二进制位可视化 + 展开更多进制(Base 3-36) + 进制小知识
+- [x] 大小写转换:8种模式(全大写/全小写/首字母/标题/驼峰/下划线/短横线/点分隔) + 暗色结果 + 实时字符/单词/行统计 + 用例说明
+- [x] 中文数字:三模式(大写/小写/口语) + 渐变结果卡片 + 数字拆解可视化 + 数字对照表(0-9 三种写法) + 应用场景
+- [x] 存储单位:渐变主结果卡片 + 全单位对照(1024进制) + 十/二进制差异说明(硬盘容量少多少%) + 实用容量对照
+- [x] URL编码:实时编码/解码 + 错误提示 + 12个特殊字符编码对照表 + 应用场景
+- [x] MD5哈希:四算法实时计算(MD5/SHA1/SHA256/SHA512 渐变色卡) + MD5字节可视化(16字节方格) + 算法对比表 + 一键复制
+- [x] CSS格式化:美化/压缩 + 缩进选项(2/4/Tab) + 语法高亮(选择器/属性/值/注释四色) + 字节数+压缩率+规则数
+
+**修复**(v1.4.1):
+- [x] 修复 json-format 高亮正则有多余 `)` 导致 esbuild 解析失败
+
+**布局反直觉问题修复**(v1.4.2,2026-07-14,产品设计规范 v2.1):
+- [x] 写入设计规范:§1.0 新增"反面教训:触发按钮在上方"、铁律第7条、§3.6 占卜/随机/抽奖类模板、§3.7 实时转换类模板、检查清单新增2条
+- [x] 全项目审计所有工具,识别 5 个违规:iching/lottery/random-number-gen(占卜/随机类) + base64-encode/morse-code(转换类)
+- [x] 易经起卦:卦象舞台在顶部,起卦按钮在下方 + 800ms 摇卦滚动动画 + scale+opacity 出现动画 + 计数
+- [x] 抽奖:中奖结果舞台在顶部,开始按钮在下方 + 800ms 滚动动画 + 中奖号码逐个弹出动画 + 计数
+- [x] 随机数生成:结果舞台在顶部,生成按钮在下方 + 700ms 滚动动画 + 数字逐个弹出动画 + 计数
+- [x] Base64 编码:移除"转换"按钮,改为实时转换 + Tab切换 + 暗色结果 + 知识区(用途/字符集/体积/场景)
+- [x] 摩斯电码:移除"转换"按钮,改为实时转换 + Tab切换 + 暗色结果 + 完整对照表(字母+数字+标点) + 应用场景
+
+**审计中合理的布局**(保留):
+- 查询类(idiom/poetry/phone/id-card/ip/dns):输入框+查询按钮+结果,搜索引擎式,合理
+- 上传类(pdf-to-word):上传区在上,合理
+- 流程类(mind-reading/reaction-test):分步引导,合理
+
+**通用审美规范沉淀**(v1.4.3,2026-07-14,设计规范 v2.2):
+- [x] 设计规范 §3.6 改名为"生成/占卜/抽奖类",扩展适用范围到密码/UUID 等所有"点击生成"工具
+- [x] 新增 §3.8 通用审美规范(7小节):首屏视觉重心 / 空白处理 / 配色层次 / 字号层级 / 圆角阴影 / 动画反馈 / 一屏完整度
+- [x] 新增问题7:生成器按钮上方留空白 / 问题8:首屏没有视觉重心
+- [x] 检查清单新增 8 条(3产品+5审美)
+- [x] 随机密码生成:顶部密码舞台(渐变+大字+强度色标) + 中部配置(滑块+字符集卡片) + 底部按钮 + 滚动生成动画 + 强度参考表
+- [x] UUID 生成:顶部 UUID 舞台(列表渐入动画) + 中部配置(v1/v4 Tab+数量滑块+大写开关) + 底部按钮 + UUID 知识区
+
+**全项目审计 + P0-P2 批量改造**(v1.4.4,2026-07-15,共 15 个工具):
+
+**P0 布局反直觉(3个)**:
+- [x] 二维码生成:顶部二维码舞台(渐变+实时生成+防抖) + 配置区(滑块) + 操作区(复制/下载) + 二维码知识
+- [x] 占位图生成:顶部占位图舞台 + 配置区(宽高滑块/文字/双色) + 6 个快捷尺寸预设 + 操作区
+- [x] 黄道吉日:顶部结果摘要舞台(渐变+大数字) + 配置区(事项/模式/日期/天数滑块) + 吉日列表卡片网格(宜/吉时标签)
+
+**P1 转换类应实时(8个)**:
+- [x] HTML 转义:实时转义/反转义 + Tab 切换 + 5 字符转义对照表 + 4 应用场景
+- [x] 简繁转换:实时简繁 + Tab 切换 + 6 用词差异示例(软件→軟體等)
+- [x] 拼音转换:实时拼音 + 声调(带/数字/无)+ 格式(带空格/不带/首字母)Tab + 拼音知识
+- [x] 文本去重:实时去重 + 4 选项(去空格/忽略大小写/排序/只保留唯一)+ 4 统计卡片(原/去/删/压缩率)
+- [x] HMAC 生成:实时 HMAC + 4 算法(MD5/SHA1/SHA256/SHA512)+ 大写开关 + 算法对比
+- [x] AES 加密:实时加解密(防抖)+ Tab 切换 + 错误提示 + AES 知识(密钥长度/模式/填充)
+- [x] SHA 哈希:实时 SHA-1/256/512 + 大写开关 + 算法对比表
+- [x] 文件哈希:顶部文件信息舞台 + 拖拽上传 + 3 算法渐变卡片 + 加载进度条 + 哈希用途
+- [x] HTML 格式化:实时格式化(防抖)+ 语法高亮(标签/属性/值/注释四色)+ 4 知识卡片
+- [x] JS 格式化:实时格式化(防抖)+ 语法高亮(关键字/字符串/数字/注释)+ 统计(字节数/行数)
+- [x] SQL 格式化:实时格式化 + 6 种 SQL 方言选择 + 语法高亮(关键字/函数/字符串/注释)
+- [x] 正则测试:实时匹配 + 3 标志 Tab + 匹配高亮预览 + 匹配列表 + 8 常用正则预设
+- [x] 文本对比:双栏输入 + 2 选项(忽略大小写/空格)+ 5 统计卡片(总/同/增/删/变化率)+ 行号 diff
+
+**P2 计算器类(5个)**:
+- [x] 年龄计算:顶部年龄大数字舞台 + 4 时间单位卡片(月/天/时/分)+ 下次生日进度条 + 生肖/星座/生命天数
+- [x] 日期间隔:顶部天数大数字舞台(负差红底)+ 8 单位卡片(工作日/周末/周/月/年/时/分/秒)
+- [x] 血压评估:顶部分级舞台(6 种颜色渐变)+ 双滑块(收缩/舒张)+ 7 级血压分级表(高亮当前)
+- [x] 血型遗传:顶部可能血型舞台(父×母→子)+ 4 血型按钮 + 不可能血型 + ABO 遗传规律说明
+- [x] 预产期:顶部预产期舞台(进度条)+ 计算方式 Tab + 4 详情卡片 + 周期滑块
+- [x] 安全期:顶部排卵日舞台 + 4 阶段彩色时间条(经期/前安全/易孕/后安全)+ 详细信息表
+- [x] 标准体重:顶部标准体重范围舞台 + 性别 Tab + 身高滑块 + 3 公式卡片(Broca/Devine/Robinson)+ BMI 区间表
+
+**待执行**(后续优先级,共 27 个工具待审):
+- [ ] **P3 详情类**(10个):birthday-book/birthday-code/constellation/hundred-surnames/luban-ruler/periodic-table/solar-terms/solar-to-lunar/twenty-eight-stars/zodiac — 需要预设值+卡片布局
+- [ ] **P4 生成类**(2个):countdown-timer/online-alarm — 需要"舞台+按钮"模式
+- [ ] **P5 查询类**(8个):idiom-dict/poetry/phone-region/id-card-region/history-today/ip-query/dns-query/whois-query — 搜索引擎式合理,但需要优化默认值和首屏
+- [ ] **P6 PDF 付费类**(5个):id-photo/image-compress/resume-generator/pdf-to-excel/pdf-to-ppt/pdf-to-scanned — 暂缓,Worker 未接
+- [ ] **P7 其他**:couples(对联)/http-status/password-gen(可能与 random-password 重复,考虑 deprecated)
+
+**用户/支付/卡密三模块补全方案**(v1.5.0,2026-07-15,设计完成):
+- [x] 新增 [36-user-payment-cardkey-modules.md](./36-user-payment-cardkey-modules.md) 作为三模块 SSOT
+- [x] 现状盘点:后端模型/API/服务齐全(注册/登录/卡密兑换/支付回调占位),前端 4 页(Login/Redeem/UserCenter/Pricing)旧式待改造
+- [x] 模块边界:三模块单向依赖(A→B→C→A 闭环),后端 modules/user|payment|card_key 三层结构
+- [x] 数据模型增量:5 张新表(user_sessions/user_profiles/email_verifications/payment_logs/card_redeem_logs)+ 现有表字段追加
+- [x] API 契约增量:模块 A 11 路径 + 模块 B 6 路径 + 模块 C 7 路径 + 14 个新错误码
+- [x] 模块 A 用户系统:账号/邮箱/手机/微信扫码 4 种登录 + 找回密码 + 资料 + 设备列表 + 注销
+- [x] 模块 B 支付系统:渠道适配器策略模式 + 微信 Native 扫码(V3 RSA-SHA256)+ 虎皮椒/PayJS + 订单状态机 + 退款 + 对账
+- [x] 模块 C 卡密系统:生成/兑换(行锁+事务+日志)/作废/统计/闲鱼订单关联
+- [x] 前端页面:6 改造 + 11 新增(含管理员后台 4 页)
+- [x] 路线图:P0 MVP(8.5d 闲鱼可发卡)→ P1 在线支付(10.5d)→ P2 用户系统(8d)→ P3 卡密运营(4.5d)→ P4 对账风控(5d),合计 36.5 人日
+- [x] 踩坑预防:基于错题集列出 5 类 20 项雷区(数据库/支付/卡密/前端/一致性)
+- [x] 上线检查清单:后端 10 项 + 前端 7 项 + 安全 7 项 + 监控 3 项
+- [x] 迭代记录机制:本文件第十二章为后续每次迭代追加记录的模板
+
+**待执行**(下一步按 37 开发计划落地,36 号为设计 SSOT):
+- [x] 36 号方案升级到 v1.2(多收款方式 + 对外卡密 API + 订单状态机闭环 + 兑换校验)
+- [x] 37-development-plan.md 产出(详细开发计划,对齐代码现状,见下)
+- [ ] 🚨 执行前先 git commit 保命(工作区大量未提交,死机已两次)
+- [ ] P0 M0:openapi.yaml 补全(36 号新增 24+5 接口,SSOT 优先,1.5 人日)— 全链卡点,最先做
+- [ ] P0 M1:modules/card_key 骨架 + 迁移 0003-0006(注意 0002 已被 guest_token 占用,新迁移从 0003 起)+ 兑换强化 + 对外 Open API + 卡密后台(5 人日)
+- [ ] P0 M2:前端 4 页改造 + 路由守卫 + 部署验收(3 人日)
+- [ ] P0 验收:兑换/生成/对外API/闲鱼录单/契约一致/verify_all 全绿
+- [ ] P1-P4 按 37 号 §三推进(总 37.5 人日)
+
+> **37 号计划关键修订**(对齐代码现状,非改设计):
+> ① 迁移重编号 0002→0003 起(0002 已被 guest_token 占用,36 号未察觉)
+> ② P0 必含对外 Open API(用户核心需求:卡密后台生成 + 外部系统对接)
+> ③ openapi.yaml 补全列为 P0 第一卡点(律一 Schema 优先,现状仅 8 基础接口严重滞后)
+> ④ modules 渐进迁移(现有扁平 api/ 不破坏,新功能入 modules)
+> 详见 [37-development-plan.md](./37-development-plan.md)
+
+**待执行**(后续):
+- [ ] 第3批:亲戚计算器扩关系/其他小工具按规范优化
+- [ ] P2:开发者工具降级 + 合并
+- [ ] P1:成语/诗词继续扩到 500+
+- [ ] P2:开发者工具降级 + 合并
+- [ ] P1:成语/诗词继续扩到 500+(当前 218/353,后续补充)
+
+**待用户准备外部资源**(我无法代劳):
+- [ ] 域名注册(.com/.cn,含 tools/gongju 关键词)
+- [ ] SSL 证书(Cloudflare 泛证书免费)
+- [ ] 备案(国内服务器必须,20 工作日)
+- [ ] Linux VPS(2C4G,阿里云轻量)
+- [ ] Windows Worker 机器 + WPS 商业版 License
+- [ ] 虎皮椒支付账号
+- [ ] 闲鱼/拼多多店铺
+
+**用户拿到外部资源后**:
+1. 填写 `.env.prod`(从 .env.prod.example 复制)
+2. 放 SSL 证书到 `nginx/certs/`
+3. 改 `nginx.conf` 的 server_name 为真实域名
+4. 执行 `bash scripts/deploy_prod.sh`
+5. 按 29-go-live-checklist-exec.md 验证
+
+**接手须知**:
+- 通用组件在 `frontend/src/components/`(含 QueryResult 查询结果组件)
+- composable 在 `frontend/src/composables/useToolForm.ts`
+- 加新工具参考已实现的 71 个页面
+- 数据库类工具:backend=db-query,后端走 `/api/query/{tool_id}` 通用查询(见 backend/app/api/query.py)
+- 代理类工具:backend=proxy,后端走 `/api/proxy/{action}`(见 backend/app/api/proxy.py)
+- 付费工具:is_premium=true,前端检查余额(userStore.balance),不足跳转兑换页
+- 批量改 registry 用 `scripts/add_batch*.py`
+- 调试: `python scripts/diagnose.py --latest`(查前端报错)
+- 全量验证: `python scripts/verify_all.py`(96 项)
+- 工具验证: `python scripts/verify_tools.py --functional`(db/proxy 自动验证,frontend 标记需浏览器)
+- 验证用例: `schemas/tests/{tool_id}.json`(77 个,含 31 个功能验证)
+- 错题集: `27-lessons-learned.md`(必读)
 
 ---
 
 ## 版本历史
+
+**基础设施增强**(v0.5.3,2026-07-03):
+- [x] 通用组件 ToolInput/ToolButton/ToolResult(驱动 input_schema 自动渲染)
+- [x] useToolForm composable(表单状态管理)
+- [x] vite manualChunks 精细分割(zxcvbn/qrcode/crypto-js/element-plus 各自独立 chunk)
+- [x] dataLoader.ts(数据文件懒加载)
+- [x] update_registry.py / add_batch1_remaining.py(批量更新脚本)
+- [x] tool.schema.json 扩展 input_schema(accept/rows/checkboxLabel/description/required)
+
+**已实现工具**(30 个,v0.5.3,达成第 1 批目标):
+
+PDF/付费(1):
+- [x] pdf-to-word(WPS Worker,高质量 OCR)
+
+电脑网络/加密(11):
+- [x] random-password / uuid-gen / qrcode-generator
+- [x] md5-hash / sha-hash / hmac-generator / aes-encrypt / file-hash
+- [x] base64-encode / url-encode / html-escape
+
+文本工具(6):
+- [x] json-format / text-count / case-convert / text-dedup / text-diff / regex-test
+
+计算工具(7):
+- [x] timestamp-convert / base-convert / unit-convert / storage-unit / bmi-calculator
+- [x] color-convert / morse-code
+
+时间工具(3):
+- [x] online-alarm / countdown-timer / world-clock
+
+符号收集(2):
+- [x] special-symbols / emoji-collection
+
+**deprecated**(避免重复,2):
+- timestamp(被 timestamp-convert 替代)
+- base64(被 base64-encode 替代)
+
+**验证结果**:
+- ✅ registry 55 个工具(53 活跃 + 2 deprecated),一致性校验通过
+- ✅ 前端构建成功(4.82s),30 个工具页各自独立 chunk
+- ✅ Nginx 部署后 30 个路由全部 HTTP 200
+- ✅ bundle 精细分割(zxcvbn 818KB 独立,各依赖按需加载)
+
+**待执行**(对齐 22 号文档 12 周计划):
+- [x] 第 1 批:30 个纯前端工具 ✅ 完成
+- [ ] 第 2 批:30 个纯前端+静态数据(Week 3-4)— 万年历/节气/生肖/元素周期表等
+- [ ] 第 3 批:30 个数据库工具(Week 5-6)
+- [ ] 第 4 批:30 个后端 API+补齐(Week 7-8)
+- [ ] 付费工具:PDF/证件照/压缩/简历(Week 9-10)
+
+**接手须知**:
+- 通用组件在 `frontend/src/components/`(ToolInput/ToolButton/ToolResult)
+- composable 在 `frontend/src/composables/useToolForm.ts`
+- 加新工具参考已实现的 30 个页面(用通用组件,约 30-80 行/个)
+- 批量改 registry 用 `scripts/update_registry.py` 或 `add_batch1_remaining.py`
+- 合入方案见 `24-tool-integration-plan.md`,操作见 `25-tool-operations-sop.md`
+
+**接手须知**:
+- 通用组件在 `frontend/src/components/`(ToolInput/ToolButton/ToolResult)
+- composable 在 `frontend/src/composables/useToolForm.ts`
+- 加新工具参考已实现的 21 个页面(用通用组件,约 30-50 行/个)
+- 批量改 registry 用 `scripts/update_registry.py`
+- 合入方案见 `24-tool-integration-plan.md`,操作见 `25-tool-operations-sop.md`
+- 合入方案见 `24-tool-integration-plan.md`,操作见 `25-tool-operations-sop.md`
+- 加新工具:改 registry → 创建页面 → 加 implementedTools → gen:tools → CI 校验
+- 现有 33 个工具(30 原有 + 3 示例),已验证合入流程可行
+
+---
+
+## 版本历史
+
+### v1.2.1 (2026-07-09) - SEO T1/T2 内容增强 + 域名 SSOT
+
+**对应文档**: [33-seo-optimization.md](./33-seo-optimization.md) §4(T1)/§5(T2)/§十一(决策+T3)
+
+**T1 内容 SEO**:
+- [x] 重复 id 清理 — `dedupe_registry.py` 删除 5 个较不完整重复条目,110→105(103 活跃),validate 重复警告 0
+- [x] 同质化 title 重算 — `t1_seo_content.py` 改进公式(挑与 name 不重叠的关键词),33 个 title 重算,残留 0
+- [x] 8 个高搜索量工具精选内容 — tax/mortgage/old-almanac/retirement/simplified-traditional/pinyin/interest/relatives
+  每个补 how_to + description_for_ai + 3-4 条 FAQ;FAQ 自动喂 FAQPage JSON-LD(实测 tax-calculator 含 4 Question)
+- [x] JSON-LD 验证 — 高搜索量工具 dist HTML 含 FAQPage 富结果
+
+**T2 GEO**:
+- [x] llms.txt 用 description_for_ai — 8 个工具有精选 AI 描述,llms.txt 不再纯 description 兜底
+- [x] llms.txt/sitemap/robots 自动生成链路稳定(仅已实现工具,按 id 去重)
+
+**域名占位 SSOT(为 T3 铺路)**:
+- [x] 新增 `frontend/src/config/site.json`(domain/name SSOT)
+- [x] canonical/sitemap/llms/robots 全部读 site.json — 换域名从"改 4 处"降到"改 1 处(site.json)+ nginx"
+- [x] ToolLayout/Home import site.json;gen-sitemap 生成 robots.txt(域名单一来源)
+- [x] `DOMAIN_PLACEHOLDER` 标记 + 一键复核 `grep -rn DOMAIN_PLACEHOLDER frontend/ nginx/`
+- [x] nginx server_name 加标记(部署期配置,无法读 JSON)
+
+**回滚基线**:git commit `67a4ffb`(T0 基线)。T1/T2 在其后。撤销 T1/T2:`git reset --hard 67a4ffb`。
+**已决断(见 33 号 §11.1)**:重复 id 保留更完整条目、同质化 title 公式、路由统一子目录、域名集中化 site.json。
+
+**验证**:build exit=0,EP 0,105 页面,dist 三件套齐全,canonical 来自 site.json,validate 通过(0 警告)。
+
+**T3 待执行(域名确定后,见 33 号 §11.4)**:
+- [ ] T3-1..10:域名注册/Cloudflare/备案 → 改 site.json+nginx 重部署 → 三大站长验证+提交 sitemap → 百度主动推送 → 统计 → 监控收录
+- [ ] 政策类文案(个税/退休)法务复核(可选)
+
+### v1.2.0 (2026-07-09) - SEO T0 技术基础落地
+
+**对应文档**: [33-seo-optimization.md](./33-seo-optimization.md)
+
+**致命缺口修复**:vite-ssg 早已在依赖但未接入 → 现已接入,站点从纯 CSR(SPA)改为预渲染静态站(SSG)。
+爬虫抓到的是真实 SSR 内容(工具名/about/70 互链),不再是空 `<div id="app">`。这是全站 SEO 的前提。
+
+**已落地(T0)**:
+- [x] vite-ssg 接入 — main.ts 用 ViteSSG 入口,router 导出 routes,vite.config 加 ssgOptions(排除 /redeem /user-center)
+- [x] SSR 守卫 — user store / errorTracker / user-agent 三处浏览器 API 加 `typeof window` / `onMounted` 守卫
+- [x] Element Plus SSR — provide ID/ZINDEX_INJECTION_KEY,消除 hydration 警告(build EP 错误 0)
+- [x] 每页 head(useHead @unhead/vue) — title/description/keywords/canonical/OG/robots,108 工具条目+首页独立
+- [x] JSON-LD 自动生成(恒输出) — WebApplication + FAQPage(有FAQ时) + BreadcrumbList,走 useHead script
+  (注:模板内 `<script>` 会被 Vue 编译器移除,旧 `<script v-html>` 实际失效,已修正为 useHead)
+- [x] 占位薄页 noindex — 16 个占位工具(_placeholder) robots=noindex,follow,不进 sitemap
+- [x] sitemap.xml — gen-sitemap.mjs 从 registry 生成,87 已实现工具+首页(按 id 去重,无重复)
+- [x] llms.txt 自动生成 — 从 registry 按分类,仅已实现工具;修正旧 llms 路径错(/tools/x→/x)+ 列未实现工具问题
+- [x] robots.txt/llms.txt 移至 frontend/public/(vite publicDir),确保进 dist(原仅项目根 public/ 不会被打包)
+- [x] nginx try_files 加 `$uri.html`(SSG 产物是 ${route}.html,否则会回退首页)+ sitemap.xml location
+- [x] **SEO 护栏(CI)** — validate.mjs:非 deprecated 工具必须填 seo.title/description,缺则 exit 1;加重复 id 检测
+- [x] seo 字段全量补全 — gen_seo_fields.py 派生 108/108 工具 seo(fallback 公式,T1 人工打磨)
+- [x] schema 扩展 — tool.schema.json seo 加 title/description/keywords 定义
+- [x] README/CLAUDE 加入 33 号文档导航 + 禁止行为护栏
+
+**发现的数据 bug(待 T1 清理)**:registry.json 有 5 个重复 id 条目
+(text-diff/regex-test/url-encode/base-convert/unit-convert 各 2 条)。validate 已加检测告警,
+gen-sitemap 按 id 去重(sitemap 干净,88 URL=87 工具+首页,无重复)。registry 重复条目需人工确认保留哪条后删除。
+
+**验证**:build exit=0,EP 错误 0,105 页面预渲染,dist 三件套(robots/llms/sitemap)齐全,
+tax-calculator.html 含独立 title/canonical/index,follow + 3 块 JSON-LD,占位页 noindex,validate 通过(5 重复 warning)。
+
+**生成命令(加新工具后必跑)**:
+- `npm run build` = gen-sitemap + vite-ssg build(产出 SSG dist,SEO 资源一并生成)
+- `node scripts/gen-sitemap.mjs` = 生成 sitemap.xml + llms.txt(仅已实现工具,自动随 registry,按 id 去重)
+- `python scripts/gen_seo_fields.py` = 派生补全缺失 seo(幂等)
+- `node scripts/validate.mjs` = SEO 护栏 + 重复 id 检测(缺 seo.title/description 即拦截)
+
+**接手须知(SEO)**:
+- 加新工具:实现页面 → gen:tools → gen_seo_fields.py(补 seo,或手填更佳) → validate 必过 → build 产出 SSG
+- robots/llms/sitemap 以 frontend/public/ 为准(gen-sitemap 自动生成 llms/sitemap;robots 静态)
+- 域名 `https://zhiniao.tools` 为占位,域名到位后改 4 处:ToolLayout 的 SITE_DOMAIN、gen-sitemap 的 SITE、robots 的 Sitemap 行、index.html og
+- vite-ssg build 时 Math.random() 互链被固化(SSG 构建期),利于 SEO 稳定,可接受
+
+**待办(T1/T2/T3,见 33 号文档)**:
+- [ ] T1:seo.title/description 人工打磨(当前 fallback 公式同质化,如"个税计算器 - 个税计算器")
+- [ ] T1:清理 registry 5 个重复 id 条目(确认保留哪条)
+- [ ] T1:扩 FAQ/how_to/description_for_ai(高搜索量工具优先,SEO+GEO 双用)
+- [ ] T2:llms.txt 的 description_for_ai 内容待补(当前用 description 兜底)
+- [ ] T3:域名/备案/三大站长验证/sitemap 提交/百度主动推送/统计(需外部资源)
+
+### v0.4.0-dev (2026-07-03) - 平台转型启动
+
+**重大决策**: 从"单品 PDF 转 Word 副业"转向"bmcx 模式便民工具平台"
+
+**转型理由**:
+1. PDF 转 Word 是红海市场(SmallPDF/iLovePDF/WPS 已统治)
+2. 闲鱼渠道月收入预测仅 30-90 元,投入产出比低
+3. 重架构(微服务/5 类 Worker)与副业轻量化矛盾
+4. bmcx.com 模式验证 10 年+,流量稳定
+
+**新方案核心**:
+- 对标 bmcx.com,8 大类共 120 个便民工具
+- 子域名结构(`{拼音}.yourdomain.com`)
+- 工具互链(每页 70 个相关链接)
+- 极简架构:Vue3 + SQLite + FastAPI(单 VPS)
+- 月固定成本 ~80 元(目标净利 720-2220 元/月)
+
+**新增文档**:
+- `22-platform-pivot-strategy.md` — 平台转型战略与 120 工具清单
+- `23-quick-start-operations.md` — 每日执行清单(可勾选)
+
+**12 周计划**:
+- Week 1-2:第 1 批 30 个纯前端工具
+- Week 3-4:第 2 批 30 个纯前端+静态数据
+- Week 5-6:第 3 批 30 个数据库类工具
+- Week 7-8:第 4 批 30 个后端+补齐
+- Week 9-10:付费工具上线(PDF/证件照/压缩/简历)
+- Week 11-12:优化与监控
+
+**与 v1.0.1 本地部署的关系**: 本地部署验证通过的单品架构作为"付费工具线"保留,平台化后第 9-10 周接入。
+
+### v0.3.0-dev (2026-07-02) - P1 基础设施进行中
+
+**目标**: 后端骨架 + 数据库 + 队列 + 存储 + CI 校验
+
+**P1 验收门禁**:
+- [ ] docker compose up 一键启动
+- [ ] 健康检查全绿
+- [ ] 数据库迁移成功
+- [ ] CI 一致性校验通过
+- [ ] OpenAPI 契约一致
 
 ### v0.2.1 (2026-07-02) - Worker 架构调整 + 实施流程总纲
 
@@ -91,43 +719,6 @@
 - 理由: 缩短开发周期,工具矩阵引流
 - Stirling-PDF 提供 50+ 工具 + REST API
 - WPS Worker 作为高质量付费后端
-
----
-
-## 当前状态
-
-### 已完成
-- [x] 战略方案确定(Fork Stirling-PDF)
-- [x] 静态原型 4 个页面
-- [x] 卡密兑换闭环演示
-- [x] 设计文档全套(本目录)
-
-### 进行中
-- [ ] Vue 工程化(原型转 Vue3)
-- [ ] 后端 API 实现
-- [ ] WPS Worker 开发(已有设计文档)
-
-### 待开始
-- [ ] 支付接入
-- [ ] 公网上线
-- [ ] 工具矩阵扩展
-
----
-
-## 下一阶段计划 (v0.3.0)
-
-### 目标: Vue 工程化 + 后端骨架
-
-**任务**:
-1. 用 Vite 创建 Vue3 + TS 工程
-2. 把 4 个静态原型转成 Vue 组件
-3. 引入 Design Tokens(从 schemas/design-tokens.json 生成)
-4. 实现工具注册表自动生成路由和卡片
-5. 搭建 FastAPI 后端骨架
-6. 实现 OpenAPI 契约定义的接口
-7. 实现卡密生成/校验 API
-
-**预计周期**: 2 周
 
 ---
 

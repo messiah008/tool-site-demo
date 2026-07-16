@@ -1,0 +1,107 @@
+# 知鸟工具箱 - Prometheus 告警规则
+# 详见 19-runbook.md
+
+groups:
+  - name: api_alerts
+    rules:
+      # API 不可用
+      - alert: APIDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "API 服务不可用"
+          description: "API 实例 {{ $labels.instance }} 已离线 1 分钟"
+
+      # API 5xx 错误率过高
+      - alert: APIHighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m])
+          / rate(http_requests_total[5m]) > 0.01
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "API 5xx 错误率 > 1%"
+          description: "5xx 错误率: {{ $value }}"
+
+      # API 响应慢
+      - alert: APISlowResponse
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "API P95 响应 > 2 秒"
+
+  - name: convert_alerts
+    rules:
+      # 转换成功率低
+      - alert: ConvertSuccessRateLow
+        expr: |
+          rate(convert_tasks_total{status="success"}[10m])
+          / rate(convert_tasks_total[10m]) < 0.9
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "转换成功率 < 90%"
+          description: "工具 {{ $labels.tool_id }} 成功率异常"
+
+      # 队列积压
+      - alert: QueueBacklogHigh
+        expr: queue_size > 50
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "队列 {{ $labels.queue_name }} 积压 > 50"
+          description: "当前积压: {{ $value }}"
+
+  - name: worker_alerts
+    rules:
+      # Worker 离线
+      - alert: WorkerOffline
+        expr: workers_online == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.worker_type }} Worker 全部离线"
+          description: "没有在线的 {{ $labels.worker_type }} Worker"
+
+  - name: payment_alerts
+    rules:
+      # 卡密兑换失败率高
+      - alert: CardRedeemFailRateHigh
+        expr: |
+          rate(card_redeem_total{status="failed"}[10m])
+          / rate(card_redeem_total[10m]) > 0.2
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "卡密兑换失败率 > 20%"
+          description: "可能存在卡密爆破或系统异常"
+
+  - name: infra_alerts
+    rules:
+      # 数据库连接失败
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "PostgreSQL 不可用"
+
+      # Redis 不可用
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Redis 不可用"
+
+      # MinIO 不可用
+      - alert: MinIODown
+        expr: up{job="minio"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "MinIO 不可用"

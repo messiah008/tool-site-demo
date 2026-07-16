@@ -13,11 +13,17 @@
 ## 必读文档(按顺序)
 
 1. `./tool-site-project/README.md` — 项目总览
-2. `./tool-site-project/12-implementation-playbook.md` — **实施流程总纲**(怎么落地+迭代)
-3. `./tool-site-project/01-progress.md` — 当前进度
-4. `./tool-site-project/07-consistency-link.md` — 一致性机制(核心)
-5. `./tool-site-project/08-ai-collaboration.md` — AI 工作规范
-6. 与任务相关的具体文档
+2. `./tool-site-project/22-platform-pivot-strategy.md` — **平台转型战略(当前最新)**(对标 bmcx+120 工具)
+3. `./tool-site-project/23-quick-start-operations.md` — **每日执行清单**(可勾选)
+4. `./tool-site-project/01-progress.md` — 当前进度(v0.4.0 平台转型启动)
+5. `./tool-site-project/07-consistency-link.md` — 一致性机制(核心)
+6. `./tool-site-project/08-ai-collaboration.md` — AI 工作规范
+7. `./tool-site-project/12-implementation-playbook.md` — 旧版实施流程(参考)
+8. `./tool-site-project/33-seo-optimization.md` — **SEO 优化方案(加新工具必读,seo 字段规范)**
+9. `./tool-site-project/32-ui-design-spec.md` — **产品设计规范 v2.2**(工具改造/新页必读)
+10. `./tool-site-project/36-user-payment-cardkey-modules.md` — **用户/支付/卡密三模块补全方案**(商业化必读, v1.2 含对外卡密 API)
+11. `./tool-site-project/37-development-plan.md` — **三模块详细开发计划**(36号落地执行版,含代码现状对齐/踩坑红线/任务依赖,执行P0必读)
+12. 与任务相关的具体文档
 
 ## 核心规范
 
@@ -40,6 +46,18 @@
 | `npm run gen:api` | openapi.yaml → TS API Client |
 | `npm run validate` | 校验所有 schema |
 | `ajv validate -s schemas/tool.schema.json -d schemas/tools.registry.json` | 校验工具注册表 |
+
+### 调试命令(AI 必看)
+
+| 命令 | 作用 |
+|------|------|
+| `python scripts/diagnose.py --latest` | 查前端最新报错(用户报问题时第一步) |
+| `python scripts/diagnose.py --limit 20` | 查最近 20 条错误 |
+| `python scripts/diagnose.py --clear` | 清空日志(修复后) |
+| `python scripts/verify_all.py` | 全量验证(53 项,改动后必跑) |
+| `python scripts/check_consistency.py` | schema 一致性校验 |
+
+**用户报告页面异常时,AI 第一步执行 `python scripts/diagnose.py --latest` 拿错误,无需让用户手动 F12。** 详见 [26-log-collection.md](./26-log-collection.md)。
 
 ## 任务执行流程
 
@@ -80,6 +98,7 @@
 - ❌ 跳过 CI 校验提交
 - ❌ 不更新 01-progress.md
 - ❌ 删除 schema 文件
+- ❌ 加新工具不填 `seo.title`/`seo.description`(validate 会拦截,见 33-seo-optimization.md)
 
 ## 项目背景
 

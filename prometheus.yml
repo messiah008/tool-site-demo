@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# 告警规则
+rule_files:
+  - alerts.yml
+
+# 告警管理器(可选,生产可接 Alertmanager)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: 'api'
+    static_configs:
+      - targets: ['api:8000']
+    metrics_path: /metrics
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    metrics_path: /minio/v2/metrics/cluster

@@ -1,0 +1,49 @@
+# === 敏感文件(绝不提交)===
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+credentials/
+config/local.*
+
+# === 重复目录(标准位置是 prototypes/)===
+tool-site-demo/
+
+# === 临时/日志 ===
+logs/
+*.log
+work/
+tmp/
+.cache/
+
+# === 依赖 ===
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+
+# === 编辑器/系统 ===
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# === 构建产物 ===
+frontend/dist/
+frontend/src/api/generated/
+backend/app/schemas/generated/
+*.css.tmp
+
+# === 数据 ===
+data/
+*.sql
+backup/
+backups/
+cards/
+__pycache__/
+*.pyc

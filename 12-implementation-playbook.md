@@ -127,6 +127,8 @@
 - [ ] 实现健康检查 `/api/health`
 - [ ] Docker Compose 一键启动
 - [ ] CI 流水线(一致性校验)
+- [ ] **[GEO]** `robots.txt` 允许 GPTBot/ClaudeBot/PerplexityBot(1 行成本)
+- [ ] **[GEO]** 在 `tool.schema.json` 预留 `seo` 字段(JSON-LD/FAQ),供 P3 使用
 
 **验收门禁**:
 | 条件 | 验证方式 |
@@ -136,11 +138,14 @@
 | 数据库迁移成功 | `alembic upgrade head` 无错 |
 | CI 一致性校验通过 | GitHub Actions 绿勾 |
 | OpenAPI 契约一致 | 后端实际 OpenAPI = yaml 文件 |
+| **[GEO]** robots.txt 含 AI 爬虫允许规则 | `curl /robots.txt` 含 GPTBot |
 
 **产出**:
 - `backend/` 完整代码
 - `docker-compose.yml`
 - CI 配置 `.github/workflows/`
+- `public/robots.txt`(GEO 基础)
+- `schemas/tool.schema.json` 含 seo 字段(GEO 预留)
 
 ---
 
@@ -177,7 +182,7 @@
 
 ### P3:工具矩阵(第 6-8 周)
 
-**目标**: 接入 Stirling-PDF + 扩展 5+ 工具
+**目标**: 接入 Stirling-PDF + 扩展 5+ 工具 ★ GEO 主战场 ★
 
 **任务**:
 - [ ] Fork Stirling-PDF,定制前端
@@ -187,6 +192,11 @@
 - [ ] 前端 Vue 工程化(原型转组件)
 - [ ] 工具注册表自动生成路由和卡片
 - [ ] SEO 预渲染(vite-ssg)
+- [ ] **[GEO]** 每个工具页生成 Schema.org JSON-LD(从 registry.seo 字段)
+- [ ] **[GEO]** 每个工具页 FAQ 区块(从 registry.seo.faq)
+- [ ] **[GEO]** 根目录 `llms.txt`(工具清单 + 卡密说明)
+- [ ] **[GEO]** 语义化 HTML + 清晰 URL(/tools/pdf-to-word)
+- [ ] **[GEO]** 工具页 Markdown 友好的"如何使用/原理"内容
 
 **验收门禁**:
 | 条件 | 验证方式 |
@@ -196,11 +206,14 @@
 | 工具数量 | ≥10 个可用 |
 | 首页自动渲染 | 新增 registry 工具自动出现卡片 |
 | 前端构建 | `npm run build` 无错 |
+| **[GEO]** JSON-LD 校验 | Google Rich Results Test 通过 |
+| **[GEO]** llms.txt 可访问 | `curl /llms.txt` 返回工具清单 |
 
 **产出**:
 - Stirling Worker 部署
 - 10+ 工具上线
 - Vue 前端工程
+- GEO 元数据自动生成(从 SSOT)
 
 ---
 
@@ -244,6 +257,8 @@
 - [ ] 数据备份策略
 - [ ] 安全加固(限流/WAF/ClamAV)
 - [ ] 灰度上线 → 全量
+- [ ] **[GEO]** 补充真实 aggregateRating(基于真实用户评价)
+- [ ] **[GEO]** 监控 AI 爬虫访问日志(GPTBot/ClaudeBot/PerplexityBot 命中数)
 
 **验收门禁**:
 | 条件 | 验证方式 |
@@ -254,6 +269,7 @@
 | 告警测试 | 模拟故障能收到告警 |
 | 备份验证 | 可从备份恢复 |
 | SLA | 可用性 ≥99% |
+| **[GEO]** AI 爬虫日志 | Grafana 可见 GPTBot 访问趋势 |
 
 **产出**:
 - 公网服务
@@ -524,6 +540,101 @@ AI 容易"自由发挥",以下机制防止漂移:
 - [10-worker-integration.md](./10-worker-integration.md) — Worker 接入
 - [11-microservice-architecture.md](./11-microservice-architecture.md) — 微服务架构
 - [CLAUDE.md](./CLAUDE.md) — AI 项目记忆
+
+---
+
+## 十一、GEO(生成式引擎优化)融入策略
+
+### 11.1 定位
+
+GEO **不作为独立工作项**,而是 P1-P3 实施过程中"顺手做"的免费技术实践,与现有 SEO 实践重叠,几乎零额外成本。
+
+**核心原则**: GEO 元数据从 `tools.registry.json` 的 `seo` 字段自动生成,符合 SSOT 原则——改一处,所有工具页的 GEO 元数据同步更新。
+
+### 11.2 各阶段 GEO 任务
+
+| 阶段 | GEO 任务 | 成本 |
+|------|---------|------|
+| P0 验证期 | 不做 | 0 |
+| P1 基础设施 | robots.txt 允许 AI 爬虫;schema 预留 seo 字段 | 5 分钟 |
+| P2 核心闭环 | 暂不做 | 0 |
+| P3 工具矩阵 | ★ 主战场:JSON-LD + FAQ + llms.txt + 语义化 HTML | 随 SSG 一起做 |
+| P4 商业化 | 补充 aggregateRating(真实评分) | 内容创作 |
+| P5 上线 | 监控 AI 爬虫日志 | 日志查询 |
+
+### 11.3 SSOT 落地:seo 字段
+
+在 `schemas/tool.schema.json` 中预留 `seo` 字段,P3 时直接使用:
+
+```json
+{
+  "seo": {
+    "json_ld": {
+      "@type": "SoftwareApplication",
+      "name": "PDF转Word",
+      "applicationCategory": "Utility",
+      "operatingSystem": "Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+    },
+    "faq": [
+      { "q": "扫描件能转吗?", "a": "高质量版支持 OCR..." }
+    ],
+    "how_to": "1. 上传 PDF\n2. 选择质量\n3. 点击转换\n4. 下载 Word",
+    "description_for_ai": "免费在线 PDF 转 Word 工具,支持扫描件 OCR..."
+  }
+}
+```
+
+**前端从 registry 读取 seo 字段,自动渲染 JSON-LD 和 FAQ**,无需手写。
+
+### 11.4 robots.txt(允许 AI 爬虫)
+
+```
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# 允许 AI 搜索引擎爬取
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://zhiniao.tools/sitemap.xml
+```
+
+### 11.5 llms.txt(放根目录)
+
+```
+# 知鸟工具箱
+
+50+ 免费在线 PDF 工具集合,支持中文 OCR 高质量转换。
+
+## 核心工具
+- PDF 转 Word: /tools/pdf-to-word (免费3次/天,高质量需卡密)
+- PDF 合并: /tools/pdf-merge
+- PDF 压缩: /tools/pdf-compress
+...
+
+## 卡密兑换
+闲鱼搜索"PDF转Word"购买,或在 /redeem 页输入卡密
+```
+
+### 11.6 反模式(不做)
+
+| 反模式 | 理由 |
+|--------|------|
+| ❌ 付费 GEO 服务 | 个人副业 ROI 不成立 |
+| ❌ 为 ChatGPT 单独建镜像站 | 流量分散,维护成本高 |
+| ❌ P0 阶段做 GEO | 需求未验证,内容无意义 |
+| ❌ 雇人写 AI 友好内容 | 工具页本身即内容,自写即可 |
 
 ---
 
