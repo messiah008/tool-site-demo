@@ -43,6 +43,11 @@ services:
     volumes:
       # 挂载 schemas 供 API 读取
       - ./schemas:/app/schemas:ro
+      # 挂载 .env 供后台「支付接入」页读写(宿主真实文件,重启生效)
+      - ./.env:/app/.env:rw
+      # 挂载微信支付商户私钥/证书(.gitignore 拒 *.pem 不入 git;只读)
+      # V3 下单签名读 apiclient_key.pem(WECHAT_PRIVATE_KEY_PATH=/app/secrets/apiclient_key.pem)
+      - ./backend/secrets:/app/secrets:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -129,10 +134,11 @@ services:
 
   # ===== Stirling Worker (PDF 工具处理) =====
   stirling:
-    image: frooodle/s-pdf:latest
+    image: tool-site-project-stirling:custom   # 自建镜像:官方 latest + tesseract chi_sim/eng(修复 pdf-ocr 500)
     restart: always
     environment:
       - DOCKER_ENABLE_SECURITY=false
+      - SECURITY_CUSTOMGLOBALAPIKEY=${STIRLING_API_KEY:-zhiniao_stirling_key_2026}
       - LANGS=zh_CN
       - REDIS_HOST=redis
       - REDIS_PASSWORD=${REDIS_PASSWORD:-change-me-redis-password}
@@ -142,6 +148,68 @@ services:
     volumes:
       - stirling-data:/configs
       - stirling-logs:/logs
+    # healthcheck 用镜像自带的(/api/v1/info/status → status:UP,已验证 healthy),不覆盖
+    depends_on:
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    networks:
+      - zhiniao-net
+
+  # ===== Stirling Worker (queue:stirling 队列消费者,接通 12 个 PDF 工具) =====
+  # 修复 38 号 §2.2 硬伤:registry 挂 12 个 backend=stirling 工具但无消费者,任务永远卡 queued
+  stirling-worker:
+    build:
+      context: ./workers
+      dockerfile: stirling/Dockerfile
+    restart: always
+    env_file:
+      - ./backend/.env            # 复用 api 的 env(REDIS_*/MINIO_*/POSTGRES_* 服务名)
+    environment:
+      - STIRLING_URL=http://stirling:8080
+      - STIRLING_API_KEY=${STIRLING_API_KEY:-zhiniao_stirling_key_2026}
+      - WORKER_ID=stirling-1
+    depends_on:
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      stirling:
+        condition: service_healthy
+    networks:
+      - zhiniao-net
+
+  # ===== Image Worker (queue:image 队列消费者,图片格式转换付费档) =====
+  # Pillow + pillow-heif 纯 Python HEIF 解码,免系统 libheif;接通 heic-to-jpg 等
+  image-worker:
+    build:
+      context: ./workers
+      dockerfile: image/Dockerfile
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      - WORKER_ID=image-1
+    depends_on:
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    networks:
+      - zhiniao-net
+
+  # ===== FFmpeg Worker (queue:ffmpeg 队列消费者,音频格式转换) =====
+  # apt ffmpeg(MP3/WAV/FLAC/OGG 免专利,不做 AAC);接通 audio-convert 真版
+  ffmpeg-worker:
+    build:
+      context: ./workers
+      dockerfile: ffmpeg/Dockerfile
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      - WORKER_ID=ffmpeg-1
     depends_on:
       redis:
         condition: service_started

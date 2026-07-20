@@ -1,6 +1,6 @@
 # 三模块详细开发计划(36 号方案落地执行版)
 
-> **版本**: v1.0
+> **版本**: v1.1
 > **最后更新**: 2026-07-16
 > **状态**: 待执行(P0 即将启动)
 > **依据**: [36-user-payment-cardkey-modules.md](./36-user-payment-cardkey-modules.md) v1.2(SSOT 设计)
@@ -72,7 +72,11 @@
 
 - [ ] 建 `backend/app/modules/__init__.py` + `modules/card_key/{__init__,models,service,api,schemas,open_api,auth}.py`
 - [ ] `models.py`:复用 `models/card_key.py` + 新增 `CardKeyDistributor` / `CardKeyBatch`(36 号 §7.6.2)
-- [ ] `card_keys` 模型追加字段:`batch_id`(FK)、`valid_from`(激活 E105)
+- [ ] **card_keys 模型字段修订(基于实地核对)**:
+  - `batch_id` **已存在**(String(32)),但现被 `order_service` 塞 `order-{order_no}`(一单一批次,纯标记)→ 改为 **FK→card_key_batches**(见 §2.2 迁移 0006 + 数据兼容)
+  - 追加 `valid_from`(激活 E105)
+  - **`status` 枚举补 `revoked`**(现状仅 `unused/used/expired`,缺 revoked)→ 36 号 §7.1 生命周期有 revoked 终态,退款联动/对外 revoke/admin 作废都依赖它。**不补则兑换校验 `if status=='revoked'` 失效**
+- [ ] **模块路由聚合**:每个 module 的 `api.py` 导出 `router`(自带 prefix),`main.py` 逐个 `include_router`(不加 API_PREFIX,见 §2.5)
 - [ ] **红线**:#003 新表 UUID 主键必 `server_default=sa.text("gen_random_uuid()")`
 
 ### 2.2 数据库迁移(顺延重编号)
@@ -85,21 +89,26 @@
   - 对应 36 号原 0003
 - [ ] **0005_user_sessions.py**:user_sessions + user_profiles + email_verifications
   - 对应 36 号原 0002(P0 可仅建表,接口 P2 再上)
-- [ ] **0006_open_api.py**:card_key_distributors + card_key_batches + card_keys 追加 batch_id/valid_from
+- [ ] **0006_open_api.py**:card_key_distributors + card_key_batches + card_keys 追加 valid_from
+  - **batch_id 改 FK 数据兼容**(硬伤2):现状 `batch_id` 已有值 `order-{order_no}` 等,FK 约束会因无对应批次行而失败。迁移策略:**先建一个 `legacy` 占位批次行 → UPDATE 现有 card_keys.batch_id='legacy' 对应值归入 → 再加 FK 约束**(或先置 NULL 再加 FK,nullable)。勿直接加 FK 否则 upgrade 报错
+  - `status` 加 CHECK 约束或靠应用层(可选,PostgreSQL 无枚举类型时靠 ORM/校验)
 - [ ] 每个迁移遵守 #003(UUID server_default);迁移后同步更新 ORM 模型(#007 雷区:迁移+模型+OpenAPI 三方同步)
 - [ ] `alembic upgrade head` 无错 → 36 号 §11.1 门禁
+- [ ] **执行前先 `alembic current` 确认 head = 0002_guest_token**(0003 起 head 串接)
 
 ### 2.3 卡密兑换强化(改 auth.py,强化为 §7.2)
 
 - [ ] `redeem` 增加:第 3b 步批次状态校验(激活 E106)、第 4a 步 valid_from 校验(激活 E105)
 - [ ] 落 `card_redeem_logs`(每个分支,含失败):成功 redeem / 失败 failed_attempt / 过期 expire
 - [ ] 兑换逻辑渐进迁入 `modules/card_key/service.py`,`auth.py /redeem` 调用它(保留旧路径兼容)
+- [ ] **service 调用方画清(模块化1)**:`modules/card_key/service.redeem()` 是**唯一兑换实现**,调用方仅 `auth.py /redeem`(用户)。对外 `redeem-notify` **不调 redeem**(只标 status=used + 关联订单,见 §2.5/§7.6.6,无 user 上下文不动余额)。避免双写兑换逻辑
 - [ ] **红线**:#011 行锁顺序「先 card_keys 再 balances」统一(防死锁);`log_action` 失败也落
 
 ### 2.4 错误码补全
 
-- [ ] `error_codes.py` 追加 E104-E106(卡密)+ E501-E507(Open API/退款),每个含 (description,message,status,retryable)
-- [ ] 同步入 openapi.yaml 的 Error 响应
+- [ ] **错误码先入 SSOT**(律一):先在 `schemas/api/openapi.yaml` 的 Error/components 定义新错误码,再同步 `error_codes.py`(每个含 description/message/status/retryable)
+- [ ] 追加 E104-E106(卡密)+ E501-E507(Open API/退款)
+- [ ] 同步入 openapi.yaml 各接口的 Error 响应引用
 
 ### 2.5 对外卡密 Open API(§7.6,P0 必上——你的核心需求)
 
@@ -109,8 +118,10 @@
   - api_secret **只存哈希**;`hmac.compare_digest` 常量时间比较;nonce 走 Redis
 - [ ] `modules/card_key/open_api.py`:5 接口 claim/query/redeem-notify/revoke/batch_list(§7.6.4)
   - redeem-notify 只标卡密 used + 关联 external_order,**不动余额**;与站内 redeem 共用 FOR UPDATE 行锁
+- [ ] **路由注册(硬伤4)**:`open_api.router` 自带 `prefix="/api/open/v1"`,`main.py` 用 `app.include_router(open_api.router)` **不加** API_PREFIX(与 auth.py 同:auth 自带 `/api/auth`、main 不加 API_PREFIX)。否则叠成 `/api/api/open/v1`
+- [ ] **跨入口互斥显式(闭环1)**:redeem-notify 与站内 redeem **共享同一 `card_keys.status` 字段 + FOR UPDATE 行锁**,谁先拿锁谁先置 used,另一方按 used 处理(站内→E102,外部→幂等返回)。这是设计意图非巧合,实现时勿分两套状态
+- [ ] **redeem-notify 的 redeemed_by=NULL**(闭环3):外部核销无 user,`card_keys.redeemed_by` 置 NULL,靠 `card_redeem_logs.action='external_redeem'` + distributor name 追溯
 - [ ] 所有写接口校验 Idempotency-Key;E506 幂等命中返 200 首次结果
-- [ ] 独立前缀 `/api/open/v1/`,区别 admin;`main.py` 注册路由
 - [ ] **红线**:无白名单接口;所有操作落 card_redeem_logs(action 标 external_*)
 
 ### 2.6 卡密管理后台(站点生成卡密入口)
@@ -134,9 +145,10 @@
 
 - [ ] 后端:`python scripts/check_consistency.py`(schema 一致)+ compare_openapi(契约一致)
 - [ ] 前端:`npm run build`(SSG)+ `node scripts/validate.mjs`(SEO 护栏)+ `python scripts/verify_all.py`(应全绿)
+- [ ] **CI 门禁全列(一致性链接4)**:设计令牌/registry ajv/OpenAPI 比对/前端 Client git diff。**P0 不改 registry 不加工具,registry 校验跳过**(注明),其余必过
 - [ ] 改 backend 代码:`docker compose up -d --build api`(#007 必须 --build)
 - [ ] 部署:`bash scripts/deploy_sync.sh` 同步前端 → Wsl nginx
-- [ ] 更新 `01-progress.md` 记录 P0(律二 文档同步)
+- [ ] **文档同步(律二)**:更新 `01-progress.md` 记录 P0 **+ 更新 36 号 §12 迭代记录 v1.x**(实际实现偏差,36 号要求每次迭代追加)
 
 ### 2.9 P0 验收(36 号 §9.1 + 本计划门禁)
 
@@ -155,8 +167,9 @@
 ### P1 在线支付(11 人日,2 周)——第二种收款方式,不下线闲鱼
 
 - [ ] 渠道适配器 `payment/channels/`(base + wechat_native + xunhupay 迁入 + payjs 迁入),闲鱼 xianyu 已在 P0
-- [ ] `pay_order_success()` 事务:paid→delivered,幂等 `status in ('paid','delivered')`
+- [ ] **`pay_order_success` 改造(硬伤3)**:现状仅置 `paid`、卡密 `created_by=f"payment:{channel}"`、`expires_at` 用 `__import__("datetime")` hack。需:① 补 `paid→delivered` 转换(卡密就绪即交付,§6.3)② 清 `__import__` hack 改正常 import ③ created_by 规范化 ④ 幂等扩为 `status in ('paid','delivered')`
 - [ ] **退款↔卡密联动**(§6.3 我加的闭环):unused→revoke;used→校验余额才扣,已消耗→E507
+  - **revoked 时序耦合(闭环2)**:P0 已补 revoked 状态(§2.1),但 P0 不做退款,P0 阶段若 admin/对外 revoke 卡密会短暂出现"卡密 revoked 但关联订单仍 paid"不一致——**可接受**(P0 无在线退款),P1 退款联动时补 revoked→订单 refunded 联动
 - [ ] Checkout.vue(选套餐→选渠道→扫码→轮询,超时调 cancel §6.4)/ Orders.vue / OrderDetail.vue
 - [ ] 订单超时清理定时任务;对账脚本;Dashboard 收入按 channel 分类
 - [ ] 微信 V3 **RSA-SHA256 非 MD5**(§10.2);回调先验签后处理;商户证书进 Docker secrets
@@ -227,6 +240,8 @@ P3/P4 依赖 P1 的订单/卡密数据
 | 迁移改表后必同步 ORM 模型 + OpenAPI(三方同步) | #007 |
 | 卡密兑换行锁顺序:先 card_keys 再 balances,统一顺序 | #011 |
 | 迁移重编号:0002 已占,新迁移从 0003 起 | 本计划 §1.3 |
+| card_keys.status 必补 revoked 枚举(36号§7.1/退款/对外revoke依赖) | 评审硬伤1 |
+| batch_id 已存在→改 FK 必先做数据兼容(legacy占位/置NULL)再加约束 | 评审硬伤2 |
 
 ### 6.2 支付/卡密
 
@@ -325,6 +340,13 @@ P3/P4 依赖 P1 的订单/卡密数据
 3. **modules 渐进迁移**(现有扁平 api/ 不破坏,新功能入 modules)
 4. **openapi.yaml 补全列为 P0 第一卡点**(律一 Schema 优先)
 5. 补 JWT 双源兜底 / refresh token(P2 评审建议)
+
+### v1.1 评审修订(开发前评审 4 硬伤 + 5 建议)
+6. **card_keys.status 补 revoked 枚举**(现状缺,36 号 §7.1 依赖)——硬伤1
+7. **batch_id 已存在改 FK + 数据兼容**(非"追加",现状被 order_service 塞 order-xxx)——硬伤2
+8. **pay_order_success 补 delivered + 清 __import__ hack**(现状仅 paid)——硬伤3
+9. **open_api 路由前缀注册方式**(自带 /api/open/v1,main 不加 API_PREFIX,防叠加)——硬伤4
+10. 错误码先入 openapi SSOT、36号§12迭代记录、service调用方画清、跨入口互斥显式、redeem-notify redeemed_by=NULL ——5 建议
 
 设计本身以 36 号 v1.2 为 SSOT,本计划只解决「怎么落到现有代码」。
 

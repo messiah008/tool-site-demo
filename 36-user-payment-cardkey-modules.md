@@ -1469,7 +1469,171 @@ router.beforeEach((to, from, next) => {
 - **错误码**:加 E507(退款卡密已消耗),注明 E501-E506 见 §7.6.5
 - **下一步**:P0 落地后追加 v1.3 记录实际实现偏差
 
-### 12.4 v1.x(后续模板,实际更新时按此格式)
+### 12.4 v1.3(2026-07-16,P0 后端落地,实际实现偏差)
+
+- **完成**(P0 后端,按 37 号 v1.1 执行):
+  - [x] openapi.yaml 补全(31 路径:原 20 + 6 admin + 5 对外;ApiKeyAuth securityScheme;8 新 schema components)
+  - [x] modules/card_key 骨架(models/schemas/service/api/open_api/auth)
+  - [x] 迁移 0003-0006 全跑通(head=0006_open_api)
+  - [x] 兑换强化 service.redeem(E105/E106/日志) + auth.py 迁入
+  - [x] 对外 Open API 5 接口 + HMAC 鉴权
+  - [x] 卡密管理后台 admin 6 接口 + get_current_admin
+- **偏差**(设计 vs 实际):
+  - 迁移编号:36 号原 0002-0005 → 实际 0003-0006(0002 被 guest_token 占用,37 号已修正)
+  - api_secret 存储:§7.6.3 说「只存哈希」→ 实际改 **Fernet 对称加密**(哈希不可逆无法 HMAC 验签,见错题集 #017)
+  - api_secret_hash 列:§7.6.2 String(128) → 实际 **256**(Fernet 密文超 128,见 #018)
+  - 路由注册:对外 API 自带 `/api/open/v1`,main 不加 API_PREFIX(防叠成 /api/api/open/v1,37 号硬伤4)
+- **新踩坑**(记入 27 号 #017-#019):HMAC 存哈希不可验签 / 列长度不够 / .env 缺服务名致连 localhost 失败
+- **端到端验证通过**:注册→登录→admin 生成→兑换→余额;对外 claim→redeem-notify→幂等 E506→跨入口互斥 E102→错签 E502
+- **下一步**:P0 前端(CardKeys.vue + 路由守卫 + 4 页改造)+ 部署验收;P0 全过进 P1
+
+### 12.5 v1.4(2026-07-16,P0 前端 + 闲鱼录单,P0 全部完成)
+
+- **完成**(P0 前端 + 闲鱼收尾):
+  - [x] CardKeys.vue 管理后台(生成舞台/统计/列表/导出/作废,§3.6/§3.8)
+  - [x] 路由守卫 setupRouterGuards(requiresAuth/requiresAdmin,SSR isClient 守卫)
+  - [x] userStore.isAdmin + cardKeyAdminApi + admin 导航 + robots 屏蔽 /admin/
+  - [x] Login/Redeem/UserCenter/Pricing 现状已符合 P0(5Tab 留 P2,在线购买留 P1)
+  - [x] 闲鱼录单接口(§6.0/§6.3):admin 录单(channel=xianyu,买家可无账号)+ 手动确认收款(走 pay_order_success,与在线支付同发卡逻辑不分叉)+ admin 订单列表
+- **偏差/补充**:
+  - 迁移加 0007:orders.user_id 改 nullable(闲鱼录单无买家账号,36 号 §6.0 未提此约束)
+  - pay_order_success 改 batch_id=None(订单发卡不归属批次,避免 FK 违反,硬伤2 发卡路径遗漏)+ 清 __import__ hack(硬伤3 部分)
+  - 补 E407 错误码(36 号 §4.2 定义,补码时漏)
+- **新踩坑**(27 号 #020-#021):E407 漏定义致 fallback E500 / pay_order_success batch_id 旧值触发 FK 违反
+- **端到端验证通过**:闲鱼录单→确认发卡→兑换余额100→幂等;admin 后台页面200/接口OK/非admin拦403;verify_all 119/119
+- **P0 状态**:全部完成,进 P1(在线支付)
+
+### 12.6 v1.5(2026-07-16,P1 在线支付完成)
+
+- **完成**(P1,按 37 号 §三 P1):
+  - [x] 渠道适配器策略模式(§6.1):modules/payment/channels/(base+wechat_native+xunhupay+payjs),CHANNELS注册表+get_channel工厂
+  - [x] 订单状态机 delivered(§6.3,硬伤3):pay_order_success 补 paid→delivered,幂等扩为 paid/delivered
+  - [x] 退款↔卡密联动(§6.3 防双重得利):refund_order unused→revoke/used→扣余额(已消耗E507)
+  - [x] checkout 在线下单 + 订单状态轮询接口
+  - [x] 前端 Checkout.vue(选套餐→选渠道→扫码→轮询)+useOrderPolling(超时停止)+Pricing 加在线购买
+- **偏差/补充**:
+  - create_order channel 白名单加 wechat_native/xunhupay/payjs/alipay_face(原仅 wechat/alipay/xianyu/pdd,#022)
+  - 闲鱼不进渠道适配器(手动渠道,P0 admin录单已实现),§6.0 的 XianyuManualChannel 不强制适配
+  - 回调验签:渠道适配器 verify_callback 需 async,提供 verify_callback_data 供 async 路由调
+- **新踩坑**(27号 #022):create_order channel 白名单漏新渠道致 checkout E404
+- **端到端验证通过**:checkout→delivered→退款unused(revoke)→退款used(扣余额150→100)→verify_all 119/119
+- **P1 状态**:全部完成,进 P2(用户系统)或对账风控
+
+### 12.7 v1.6(2026-07-16,P2 用户系统后端完成)
+
+- **完成**(P2 后端,按 37 号 P2 + 评审断点1):
+  - [x] modules/user/(models:UserSession/UserProfile/EmailVerification ORM) + api
+  - [x] JWT 黑名单:create_access_token 加 JTI,is_jti_revoked(Redis黑名单+user_sessions库兜底,评审断点1防Redis丢失复活),登出/强制下线吊销JTI
+  - [x] 登录落 user_sessions(IP/UA/设备)+last_login;设备列表/强制下线/全部下线(E408不能吊销自己)
+  - [x] 用户资料 GET/PUT + 改密码(需当前密码,改完吊销所有会话)
+  - [x] 找回密码邮箱验证码:forgot-password/verify-code/reset-password(5分钟有效,错5次锁,60秒重发冷却,防邮箱枚举,SMTP占位控制台输出)
+  - [x] 注销(软删banned+吊销所有会话,token立即失效,评审建议)
+  - [x] 微信扫码骨架(qrcode/callback占位,需WECHAT_APPID真实接入)
+- **偏差/补充**:
+  - create_access_token 签名加 jti(影响所有签发处,仅 auth.py 调用)
+  - 注销复用 status=banned 标记(简化,真实可加 deactivate_status 字段)
+  - 邮件发送占位控制台输出(接 SMTP 配置时替换 _send_email_code)
+- **新踩坑**(27号 #023):E302-E305/E408/E409 漏定义致 fallback E500(同#020复发,补错误码要全表核对§4.2)
+- **端到端验证通过**:登录落session→设备列表→强制下线(401)→登出(401)→找回密码重置→改资料→注销(token失效),verify_all 119/119
+- **下一步**:P2 前端(Login加Tab+UserCenter加资料/设备Tab);P3 卡密运营/P4 对账风控
+
+### 12.8 v1.7(2026-07-16,P3 卡密运营完成)
+
+- **完成**(P3,按 37 号 §三 P3):
+  - [x] 批次管理:admin/batches(列表含使用率/过期率)+PUT status(停用/启用,激活E106完整)
+  - [x] 过期清理:admin/cleanup-expired端点(dry_run+执行,unused→expired+落日志)
+  - [x] 闲鱼CSV批量发货:admin/xianyu-batch-ship(订单列表→批量生成+关联external_order_no→发货清单);generate_cards.py加--db/--from-orders(本地脚本)
+  - [x] 作废退款联动:revoke_card查关联订单,有则落日志提示需退款(§6.3)
+  - [x] 前端 CardKeys.vue 批次管理区(批次列表+使用率+停用/启用+清理过期按钮)
+- **偏差/补充**:
+  - 运维逻辑(cleanup/发货)做成 admin API 端点而非纯脚本(#024:容器未挂载scripts,API端点无路径依赖+有鉴权)
+  - 统计增强 usage_rate(使用率)在批次列表返回
+- **新踩坑**(27号 #024):运维脚本依赖app模块但容器未挂载scripts目录→做成admin API端点
+- **端到端验证通过**:批次列表(使用率)/停用/过期清理dry-run/闲鱼批量发货(2单关联external_order_no)/verify_all 119/119/openapi 39路径
+- **P3 状态**:全部完成,进 P4(对账风控)
+
+### 12.9 v1.8(2026-07-16,P4 对账风控后端完成)
+
+- **完成**(P4,按 37 号 §三 P4):
+  - [x] 收入看板:admin/dashboard(今日/本周/本月收入+订单数,按channel分类,闲鱼+在线统一统计§6.0)+退款30日汇总
+  - [x] 每日对账:admin/reconcile(按日期核对订单收入vs卡密生成,各渠道paid/refunded统计,discrepancy差异标记)
+  - [x] 退款记录:admin/refunds(退款列表查询,P1 refund直执行+记录查询)
+  - [x] 风控告警:admin/risk-alerts(同IP短时多次兑换失败聚合,超阈值告警,企业微信机器人占位日志)
+- **偏差/补充**:
+  - 告警通道占位日志输出(接企业微信机器人替换 _send_risk_alert)
+  - 对账 discrepancy=已交付订单-卡密数(批量生成卡密≠订单发卡时非0,反映真实差异)
+- **新踩坑**(27号 #025):新增端点用Query但顶部未import致api crash loop(同#020/#023类import缺失)
+- **端到端验证通过**:dashboard(按渠道分类)/reconcile(差异标记)/refunds/risk-alerts/verify_all 119/119/openapi 43路径
+- **P4 状态**:全部完成(后端+前端 admin/Dashboard.vue 收入看板+对账+风控)
+
+### 12.10 v1.9(2026-07-16,SMTP 接入 + #033 字段错位闭环)
+
+- **完成**(外部资源接入:SMTP 邮件,接 38 号 §四占位 + 错题集 #033 闭环):
+  - [x] 新建 `backend/app/utils/email.py`(§5.4 模块化):`parse_host_port` 容错 host:port 合体 / `send_email`(SSL,SMTP_FROM 空→回退 SMTP_USER)/ `send_verify_code`
+  - [x] `auth.py` `_send_email_code` 从 print 占位 → 调 `send_verify_code` 真发;失败降级控制台不阻断
+  - [x] `config/service.py` `write_env` 加 `INT_FIELDS={"SMTP_PORT"}` 类型校验(防错位脏数据致 pydantic ValidationError → api crash loop,#033 核心防线)
+  - [x] `_test_smtp` 用 `parse_host_port` 容错读取
+  - [x] 前端 `PaymentConfig.vue` `saveEdit` 加 SMTP_PORT 数字校验 + `placeholderFor` 引导(SMTP_HOST 只填主机名)
+- **偏差/补充**:
+  - SMTP_FROM 不强制:空时回退 SMTP_USER(阿里云邮件 push `smtpdm.aliyun.com` 发信地址即账号,user=admin@bibilabu.cc 即 from)
+  - _send_email_code 降级保留:配置不全/SMTP 异常时控制台打印,找回密码端点防枚举仍统一回"已发送"(不向用户暴露发送失败)
+- **#033 闭环**:源码 v-model 已按字段名绑定(疑旧部署产物错位);真防线缺失在后端无类型校验 → 本次加 INT_FIELDS 校验,即使前端错位也不让脏数据进 .env
+- **新踩坑**:无(本次为接入+防线加固,无新坑)
+- **部署生效**:Windows→WSL 同步→重建 api+前端→重启(.env SMTP 段已手动还原正确,缺 FROM 由回退兜底)
+- **下一步**:微信 V3/虎皮椒/PayJS 真实下单接入(38 号 §一/二/三);企业微信告警接入(§六)
+
+### 12.11 v1.10(2026-07-16,SMTP 验证发信功能 + config 模块入 openapi)
+
+- **完成**(SMTP 接入增强 + 一致性债修复):
+  - [x] 后端 `config/service.py` 加 `send_test_email(to_email)`:校验邮箱格式 + 复用 `utils/email.send_email` **真发一封测试邮件**(区别于 `_test_smtp` 仅登录连通),失败返 ok:false 不抛
+  - [x] 后端 `config/api.py` 加 `POST /api/admin/config/test-email`(TestEmailRequest + get_current_admin 鉴权);用运行时 settings(与找回密码实际发信一致)
+  - [x] 前端 `client.ts` configAdminApi 加 `testEmail(to)`;`PaymentConfig.vue` SMTP 渠道加收件邮箱输入 + 发测试邮件按钮 + 结果区(§3.8 CSS 变量,不硬编码)
+  - [x] **openapi.yaml 补全 config 模块 5 端点**(get/write/test/test-email/restart,BearerAuth)— 修历史遗漏一致性债(CLAUDE.md「改接口先改 openapi」),48 路径
+- **设计决策**:
+  - 测试连通(`/test`)用 .env 最新值验证登录;验证发信(`/test-email`)用运行时 settings 真发邮件 — 语义不同,后者与找回密码实际行为一致(刚改配置需先 /restart)
+  - 验证发信失败也返 200 ok:false(与 _test_smtp 风格一致,不向管理员抛 500)
+- **端到端验证**:真发测试邮件到 admin@bibilabu.cc 收信链路通(见 01-progress)
+- **下一步**:微信 V3/虎皮椒/PayJS 真实下单接入;企业微信告警接入
+
+### 12.12 v1.11(2026-07-17,微信支付 V3 真实下单接入)
+
+- **完成**(外部资源接入:微信支付 V3,接 38 号 §一占位):
+  - [x] 证书入 `backend/secrets/`(apiclient_key.pem 商户私钥/.p12/.pem),.gitignore 拒 *.pem 不入 git;compose api 加 `./backend/secrets:/app/secrets:ro` 挂载
+  - [x] `.env` 填 V3 配置(APPID/MCHID/API_V3_KEY/SERIAL_NO/PRIVATE_KEY_PATH=/app/secrets/apiclient_key.pem/NOTIFY_URL=bibilabu.cc)
+  - [x] 重写 `wechat_native.py`:`create_payment` 调 V3 Native 下单(RSA-SHA256 签名,商户私钥)拿真实 `code_url`;`verify_callback_data` 验签+AES-256-GCM 解密 resource;`query_order` V3 查单。无新依赖(cryptography 已装)
+  - [x] `payment.py` 加 `POST /callback/wechat`(先验签解密→金额校验→pay_order_success→{code:SUCCESS},§10.2)
+  - [x] config 加 `WECHAT_PUB_KEY_PATH`;`_test_wechat_pay` 升级为**真连 V3 下单测试**(后台测试连通即真下单验签名)
+- **新踩坑**(27 号 #036/#037):V3 签名串字段顺序错(应为 method\npath\ntimestamp\nnonce\nbody\n)→SIGN_ERROR;新模式商户无平台证书,回调验签改用「微信支付公钥」(PUB_KEY_ID_ 前缀,双模式兼容)
+- **端到端验证**:真连微信 V3 下单成功拿真实 code_url(`weixin://wxpay/bizpayurl?pr=xxx`);后台测试连通→V3 下单成功;verify_all 132/132
+- **待办**:① 下载微信支付公钥(.pem)+ 记公钥ID 放 secrets,配 WECHAT_PUB_KEY_PATH 启严格回调验签(当前公钥未到位时容错放行+告警,回调路由二次校验订单状态/金额防伪造,支付不阻断);② 公网 DNS+SSL 就绪后微信回调方能真实触达(本地 localhost 微信无法回调,但下单已通)
+- **下一步**:虎皮椒/PayJS 真实下单;企业微信告警接入;退款 V3 接入
+
+### 12.13 v1.12(2026-07-20,在线支付改造 P0-P2 落地,39 号 SSOT)
+
+- **完成**(按 [39-payment-redesign.md](./39-payment-redesign.md) 四主线:易用性/可靠性/安全性/合规):
+  - **P0 易用性(首要,解"不出二维码")**:
+    - [x] 新建 `components/payment/{QrCode,PackageCard,ChannelTabs,OrderStatus}.vue`(复用 qrcode 库 QRCode.toDataURL→img,§3.6 舞台模式)
+    - [x] Checkout.vue 重构为 §3.6 舞台模式(顶部永久扫码舞台+下方配置区,金额 48px 主色渐变,删硬编码色值,圆角收敛,结果渐入动画,失败态 UI)
+    - [x] Pricing.vue 跳转传参 query.pkg + 套餐 id 对齐后端(single_50/monthly_100/yearly_unlimited)
+    - [x] 新建 `stores/order.ts`(进行中订单持久化,刷新恢复)+ useOrderPolling 集成 store
+  - **P1 可靠性**:
+    - [x] openapi 补 `POST /api/payment/orders/{no}/cancel` + E405 错误码
+    - [x] 新建 `modules/payment/{schemas,service,api}.py`(cancel_order/expire_pending_orders/auto_redeem,渐进迁移)
+    - [x] main.py lifespan 加超时清理后台任务(每 60s 扫 expires_at<now 的 pending 在线订单→expired)
+    - [x] order_service: create_order 写 expires_at(在线 30min,闲鱼 None)+ pay_order_success 落 payment_log(event=paid)+ 对登录用户自动兑换(auto_redeem 调 redeem_service,E102 幂等)
+    - [x] Order ORM 补 4 列(pay_url/expires_at/refunded_at/refund_amount,对齐迁移0004)
+    - [x] checkout 异常兜底(create_payment 失败→cancelled+落 log,不悬空)
+    - [x] client.ts 加 cancelOrder;useOrderPolling 超时调 cancel+降频 5s+指数退避+失败态
+    - [x] nginx 加 poll_limit 独立限流区(30r/m)+回调白名单(不限流,防 429)+ useBalanceSync
+  - **P2 安全加固**:
+    - [x] wechat 验签 fail-fast(配了路径但文件缺失→E403;未配→灰度告警放行保支付,公钥就绪自动转严格)
+    - [x] xunhupay/payjs secret 用 settings+fail-fast(空→E403,删 TODO_SECRET 占位)+ 补金额校验
+    - [x] payment.py 回调改走渠道适配器 verify_callback_data,删内联 _verify_*_sign(消除重复验签)
+    - [x] base.py 契约修正(verify_callback_data 统一,子类各自签名)
+- **设计决策**:自动兑换仅登录用户(闲鱼 user_id=None 手动);验签 fail-fast 灰度态(未配公钥放行+告警,配了自动严格,plan 风险缓解)
+- **下一步**:公网 DNS+SSL 就绪微信回调触达;下载微信支付公钥配 WECHAT_PUB_KEY_PATH 启严格验签;虎皮椒/PayJS 真实下单 API 接入
+
+### 12.14 v1.x(后续模板,实际更新时按此格式)
 
 ```markdown
 ### v1.x(YYYY-MM-DD,XXX)

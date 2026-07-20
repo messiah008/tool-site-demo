@@ -399,21 +399,22 @@ const jsonLd = computed(() => [JSON.stringify({
 | 子域名是否启用 | `subdomain` 字段保留但未用 | 个别高流量工具后期是否拆子域名(301 到主站) |
 | 政策类内容准确性 | 个税/退休 FAQ 标注"以官方为准" | 是否需法务/财务复核政策类文案 |
 
-### 11.3 域名占位清单(域名到位后改这些点 — 一键定位)
+### 11.3 域名占位清单(✅ 已落地 2026-07-17:域名确定 bibilabu.cc)
 
-> **换域名只需 2 步**:① 改 `frontend/src/config/site.json` 的 `domain`;② 改 `nginx/nginx.conf` 的 `server_name`。然后重 build。
-> 前端其余全部自动跟随 site.json。一键复核命令:
-> `grep -rn "DOMAIN_PLACEHOLDER" frontend/ nginx/` 应列出全部需关注位置。
+> **域名已确定**:bibilabu.cc(粤ICP备2026096432号-1,珠海友米网络科技有限公司,网站首页 www.bilibabu.cc)。
+> 2026-07-17 备案信息落地:① `site.json` domain→https://www.bilibabu.cc + 加 company/icp 主体字段;② `nginx.conf` server_name→bibilabu.cc;③ 页脚展示 ICP 号(链 beian.miit.gov.cn)+公司名;④ openapi server/tool.schema $id 同步。代码区 `DOMAIN_PLACEHOLDER`/`zhiniao.tools` 占位标记已全部清除。
+> 下次换域名仍只需:① 改 `site.json` 的 `domain`(+ company/icp);② 改 `nginx.conf` 的 `server_name`;③ 重 build。前端 canonical/sitemap/robots/llms 自动跟随 site.json。
 
-| # | 位置 | 当前值 | 改法 |
+| # | 位置 | 旧占位值 | 现值 |
 |---|------|--------|------|
-| 1 | `frontend/src/config/site.json` → `domain` | `https://zhiniao.tools` | **SSOT,改这里** canonical/sitemap/robots/llms 全跟随 |
-| 2 | `nginx/nginx.conf` → `server_name`(2 处 + 子域名 1 处) | `zhiniao.tools` | 部署期改真实域名(无法读 JSON) |
+| 1 | `frontend/src/config/site.json` → `domain` | `https://zhiniao.tools` | ✅ `https://www.bilibabu.cc`(+ company/icp 主体字段) |
+| 2 | `nginx/nginx.conf` → `server_name`(2 处 + 子域名 1 处) | `zhiniao.tools` | ✅ `bibilabu.cc`/`www.bibilabu.cc`/`*.bibilabu.cc` |
 | 3 | `index.html` | title/description 无域名 | 无需改(各页 useHead 覆盖;仅 SPA 兜底) |
+| 4 | `schemas/api/openapi.yaml` servers + `schemas/tool.schema.json` $id | `api.zhiniao.tools`/`zhiniao.tools` | ✅ `https://www.bilibabu.cc` |
 
-> robots.txt 的 `Sitemap:` 行由 `gen-sitemap.mjs` 从 site.json 生成,无需手改。
+> robots.txt 的 `Sitemap:` 行由 `gen-sitemap.mjs` 从 site.json 生成,无需手改(重 build 自动变 bibilabu.cc)。
 
-### 11.4 T3 待执行清单(域名确定后)
+### 11.4 T3 待执行清单(✅ 域名已确定,其余外部资源待办)
 
 > 以下需外部资源/账号,我无法代劳,域名到位后按序执行。
 

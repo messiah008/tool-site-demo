@@ -65,6 +65,15 @@
 | 31 | [31-usability-optimization.md](./31-usability-optimization.md) | **产品易用性优化方案** | **产品/前端** |
 | 32 | [32-ui-design-spec.md](./32-ui-design-spec.md) | **工具界面设计规范(一屏可见/双栏/视觉层次)** | **前端/产品** |
 | 33 | [33-seo-optimization.md](./33-seo-optimization.md) | **SEO 优化方案(技术SEO/GEO/护栏,加新工具必读)** | **前端/架构/运营** |
+| 34a | [34-product-power-optimization.md](./34-product-power-optimization.md) | 产品力优化方案(对标 huangli.com) | 产品/前端 |
+| 34b | [34-ai-tools-strategy.md](./34-ai-tools-strategy.md) | AI 工具分类引流方案(引流自有 New API/发卡) | 产品/运营 |
+| 35a | [35-short-video-tools-plan.md](./35-short-video-tools-plan.md) | 短视频制作小工具方案 | 产品/前端 |
+| 35b | [35-tool-design-audit.md](./35-tool-design-audit.md) | 小工具产品设计审查与改进方案 | 产品/前端 |
+| 36 | [36-user-payment-cardkey-modules.md](./36-user-payment-cardkey-modules.md) | **用户/支付/卡密三模块补全方案(商业化必读)** | **后端/前端/产品** |
+| 37 | [37-development-plan.md](./37-development-plan.md) | **三模块详细开发计划(执行 P0 必读)** | **后端/前端/AI** |
+| 38a | [38-placeholder-integration-checklist.md](./38-placeholder-integration-checklist.md) | **占位代码接入清单(外部资源到位后替换占位)** | **后端/运维/运营** |
+| 38b | [38-competitor-and-conversion-gap.md](./38-competitor-and-conversion-gap.md) | **竞品分析(格式智造)+转换能力缺口+Stirling实测+stirling-worker落地** | **产品/架构/运营** |
+| 40 | [40-paid-tool-productization-rules.md](./40-paid-tool-productization-rules.md) | **付费工具产品化通用规则(扣费退款/进度用时/结果展示/余额UX/错误码/SSOT对齐,上线前门禁)** | **后端/前端/产品** |
 
 ### 资源文件
 

@@ -23,7 +23,10 @@
 9. `./tool-site-project/32-ui-design-spec.md` — **产品设计规范 v2.2**(工具改造/新页必读)
 10. `./tool-site-project/36-user-payment-cardkey-modules.md` — **用户/支付/卡密三模块补全方案**(商业化必读, v1.2 含对外卡密 API)
 11. `./tool-site-project/37-development-plan.md` — **三模块详细开发计划**(36号落地执行版,含代码现状对齐/踩坑红线/任务依赖,执行P0必读)
-12. 与任务相关的具体文档
+12. `./tool-site-project/38-placeholder-integration-checklist.md` — **占位代码接入清单**(外部资源到位后逐一替换占位,含文件:行/接入步骤/所需资源)
+13. `./tool-site-project/38-competitor-and-conversion-gap.md` — **竞品分析+转换能力缺口+Stirling实测**(P0:stirling-worker 接通 12 个"假就绪"工具,含实测端点表/worker 设计/落地路线)
+14. `./tool-site-project/40-paid-tool-productization-rules.md` — **付费工具产品化通用规则**(扣费保障/进度用时真化/结果展示/余额UX/错误码/SSOT三处对齐,付费转换工具上线前门禁)
+15. 与任务相关的具体文档
 
 ## 核心规范
 
@@ -73,7 +76,7 @@
 - P0 验证期(第1周):闲鱼验证需求
 - P1 基础设施(第2-3周):后端骨架+数据库+队列
 - P2 核心闭环(第4-5周):卡密+PDF转Word 跑通
-- P3 工具矩阵(第6-8周):Stirling+10个工具
+- P3 工具矩阵:Stirling 集成(⚠️实测 12 工具假就绪、链路从未接通,P0 需先写 stirling-worker,见 [38-competitor-and-conversion-gap.md](./38-competitor-and-conversion-gap.md) §五)
 - P4 商业化(第9-10周):支付+用户系统
 - P5 上线运营(第11-12周):公网+监控
 
@@ -111,8 +114,10 @@
 
 ## 当前阶段
 
-- v0.2.0: 静态原型 + 卡密兑换闭环(已完成)
-- v0.3.0: Vue 工程化 + 后端骨架(进行中)
+- v1.5.1: 119 工具(110+ 活跃),SSG 预渲染 SEO 落地,verify_all 119/119
+- 三模块(用户/支付/卡密)P0-P4 全部完成(兑换/在线支付/用户系统/卡密运营/对账风控)
+- ⚠️ Stirling 转换链路待接通:12 个 backend=stirling 工具实测为假就绪(无消费者),P0 写 stirling-worker(见 [38-competitor-and-conversion-gap.md](./38-competitor-and-conversion-gap.md))
+- 待外部资源:域名/SSL/备案/VPS/微信支付资质/SMTP(详见 01-progress)
 
 详见 `01-progress.md`
 
